@@ -35,6 +35,20 @@ class BibleTracker {
 const bibleEngine = new BibleTracker();
 window.bibleEngine = bibleEngine;
 
+// Initialize local Bible data mapping
+window.bibleTextData = {};
+if (window.rawBibleJson) {
+   let bibleDataIds = ["gen","exo","lev","num","deu","jos","jdg","rut","1sa","2sa","1ki","2ki","1ch","2ch","ezr","neh","est","job","psa","pro","ecc","sng","isa","jer","lam","ezk","dan","hos","jol","amo","oba","jon","mic","nah","hab","zep","hag","zec","mal","mat","mrk","luk","jhn","act","rom","1co","2co","gal","eph","php","col","1th","2th","1ti","2ti","tit","phm","heb","jas","1pe","2pe","1jn","2jn","3jn","jud","rev"];
+   for(let i=0; i<66; i++) {
+        let bookId = bibleDataIds[i];
+        window.bibleTextData[bookId] = {};
+        let chapters = window.rawBibleJson[i]? window.rawBibleJson[i].chapters : [];
+        for(let c=0; c<chapters.length; c++) {
+            window.bibleTextData[bookId][c+1] = chapters[c];
+        }
+   }
+}
+
 window.initBibleDashboard = () => {
     let container = document.getElementById('bible-view-section');
     
@@ -323,6 +337,9 @@ window.toggleBibleChapter = (bookId, chap) => {
 
 window.promptBibleReader = (bookId) => {
     let book = window.bibleData.find(b => b.id === bookId);
+    let color = book.type === 'ot' ? '#d9bfa4' : '#f9a8d4'; // pastel brown vs pastel pink
+    let accent = book.type === 'ot' ? '#8c7d6e' : '#db2777';
+    let lightBg = book.type === 'ot' ? '#f5efe6' : '#fdf2f8';
     
     let modal = document.getElementById('bible-chapter-selector-modal');
     if (!modal) {
@@ -334,17 +351,21 @@ window.promptBibleReader = (bookId) => {
     
     let gridHtml = '';
     for (let i = 1; i <= book.chapters; i++) {
-        let readStatus = bibleEngine.isRead(bookId, i) ? 'opacity: 0.5;' : '';
-        gridHtml += `<div style="padding: 1rem; background: var(--bg-secondary); text-align: center; border-radius: 8px; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); font-weight: bold; font-size: 1.1rem; color: var(--text-main); ${readStatus}" onclick="window.selectBibleChapter('${bookId}', ${i})">${i}</div>`;
+        let isRead = bibleEngine.isRead(bookId, i);
+        let bg = isRead ? color : '#ffffff';
+        let txtCol = isRead ? '#ffffff' : accent;
+        let border = isRead ? `1px solid ${color}` : `1px solid ${color}55`;
+        let shadow = isRead ? 'none' : '0 2px 5px rgba(0,0,0,0.05)';
+        gridHtml += `<div style="padding: 1rem; background: ${bg}; text-align: center; border-radius: 12px; cursor: pointer; border: ${border}; font-weight: 800; font-size: 1.15rem; color: ${txtCol}; box-shadow: ${shadow}; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onclick="window.selectBibleChapter('${bookId}', ${i})">${i}</div>`;
     }
     
     modal.innerHTML = `
-        <div class="glass-panel" style="width: 100%; max-width: 500px; max-height: 80vh; display: flex; flex-direction: column; background: var(--bg-main); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
-            <div style="padding: 1.2rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(0,0,0,0.05);">
-                <h3 style="margin: 0; color: var(--color-primary);">📖 ${book.name}</h3>
-                <button class="btn btn-secondary" style="border: none;" onclick="document.getElementById('bible-chapter-selector-modal').style.display='none'">✕ 닫기</button>
+        <div class="glass-panel" style="width: 100%; max-width: 550px; max-height: 85vh; display: flex; flex-direction: column; background: var(--bg-main); border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border-top: 6px solid ${color};">
+            <div style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed ${color}55; background: ${lightBg};">
+                <h3 style="margin: 0; color: ${accent}; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">📖 ${book.name} <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 500;">몇 장을 읽을까요?</span></h3>
+                <button class="btn btn-secondary" style="border: none; background: transparent; font-size: 1.2rem; color: ${accent};" onclick="document.getElementById('bible-chapter-selector-modal').style.display='none'">✕</button>
             </div>
-            <div style="padding: 1.5rem; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 0.8rem; background: var(--glass-bg);">
+            <div style="padding: 1.5rem; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 1rem; background: var(--glass-bg);">
                 ${gridHtml}
             </div>
         </div>
@@ -412,8 +433,6 @@ window.saveInlineChapterComment = (bookId, chap) => {
 window.openBibleReader = (bookId, chap) => {
     let book = window.bibleData.find(b => b.id === bookId);
     let title = `${book.name} ${chap}장`;
-    let url = `https://ibibles.net/quote.php?kor-${bookId}/${chap}`;
-    let proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
     let existingComment = bibleEngine.state.chapterComments[`${bookId}-${chap}`] || '';
     
     let modal = document.getElementById('bible-modal');
@@ -426,51 +445,68 @@ window.openBibleReader = (bookId, chap) => {
     modal.style.zIndex = '99999';
     
     modal.innerHTML = `
-        <div class="glass-panel modal-content" style="width: 100%; max-width: 950px; height: 90vh; display: flex; flex-direction: column;">
-            <div style="padding: 1.2rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(0,0,0,0.05); background: rgba(255,255,255,0.7); flex-wrap: wrap; gap: 0.5rem;">
+        <style>
+          .bible-modal-layout { flex: 1; display: flex; min-height: 0; flex-direction: row; flex-wrap: nowrap; overflow: hidden; }
+          .bible-modal-content { flex: 6; padding: 1.5rem 2rem; overflow-y: auto; background: white; border-right: 1px solid rgba(0,0,0,0.1); font-size: 1.1rem; line-height: 2.0; color: #1e293b; box-sizing: border-box; }
+          .bible-modal-comment { flex: 4; padding: 1.5rem; background: var(--bg-variant); display: flex; flex-direction: column; gap: 0.8rem; box-sizing: border-box; }
+          @media (max-width: 768px) {
+              .bible-modal-layout { flex-direction: column; }
+              .bible-modal-content { flex: 1; padding: 1.5rem; border-right: none; border-bottom: 2px solid #e2e8f0; }
+              .bible-modal-comment { flex: none; height: 350px; }
+          }
+        </style>
+        <div class="glass-panel modal-content" style="width: 100%; max-width: 1100px; height: 90vh; display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; background: white;">
+            <div style="padding: 1.2rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(0,0,0,0.05); background: rgba(255,255,255,0.9); z-index: 10;">
                 <h3 id="bible-modal-title" style="margin: 0; font-size: 1.3rem; display: flex; align-items: center; gap: 0.5rem; color: var(--color-primary);">📖 <span id="bible-modal-title-text">${title}</span></h3>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    ${!bibleEngine.isRead(bookId, chap) ? `<button class="btn btn-primary" onclick="window.markOpenedBibleRead()" style="background: #3b82f6; color: white;">✅ 이 장 다 읽음!</button>` : `<button class="btn btn-secondary" onclick="window.markOpenedBibleUnread()">❌ 읽음 취소</button>`}
+                    ${!bibleEngine.isRead(bookId, chap) ? `<button class="btn btn-primary" onclick="window.markOpenedBibleRead()" style="background: #10b981; color: white;">✅ 이 장 다 읽음!</button>` : `<button class="btn btn-secondary" onclick="window.markOpenedBibleUnread()">❌ 읽음 취소</button>`}
                     <button class="btn btn-secondary" onclick="window.closeBibleModal()" style="border: none;">✕ 닫기</button>
                 </div>
             </div>
-            <div style="flex: 1; display: flex; min-height: 0; flex-direction: row; flex-wrap: wrap;">
-                <div id="bible-native-container" style="flex: 1.5; min-width: 300px; padding: 1.5rem; overflow-y: auto; background: white; border-right: 1px solid rgba(0,0,0,0.1); font-size: 1.1rem; line-height: 1.8; color: #1e293b;">
+            <div class="bible-modal-layout">
+                <div id="bible-native-container" class="bible-modal-content">
                     <div style="text-align: center; color: var(--text-muted); margin-top: 2rem;">성경 본문을 불러오는 중... ⏳</div>
                 </div>
-                <div style="flex: 1; min-width: 300px; padding: 1.5rem; background: var(--bg-variant); display: flex; flex-direction: column; gap: 0.8rem;">
+                <div class="bible-modal-comment">
                     <h4 style="margin: 0; color: var(--color-primary); display: flex; justify-content: space-between; align-items: center;">
                         <span>💬 묵상 / 코멘트 노트</span>
                         <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);">자동 저장됨</span>
                     </h4>
-                    <textarea id="bible-comment-area" style="flex: 1; border-radius: 8px; border: 1px solid #cbd5e1; padding: 1rem; resize: none; font-family: inherit; font-size: 0.95rem; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);" placeholder="읽으면서 느낀 점, 은혜받은 구절, 생각 등을 자유롭게 다이어리처럼 적어보세요...">${existingComment}</textarea>
+                    <textarea id="bible-comment-area" style="flex: 1; border-radius: 12px; border: 1px solid #cbd5e1; padding: 1.2rem; resize: none; font-family: inherit; font-size: 1rem; background: #fdfdfd; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); line-height: 1.6;" placeholder="이 장을 읽으면서 느낀 점, 은혜받은 구절, 생각 등을 자유롭게 다이어리처럼 적어보세요...">${existingComment}</textarea>
                 </div>
             </div>
         </div>
     `;
     modal.style.display = 'flex';
     
-    // Fetch and parse native HTML
-    fetch(proxyUrl).then(r => r.json()).then(data => {
-        let parser = new DOMParser();
-        let doc = parser.parseFromString(data.contents, 'text/html');
-        let bodyHtml = doc.body.innerHTML;
-        // Parse out typical ibibles structure (<small> verses) and clean it up
-        let cleanHtml = bodyHtml.replace(/<small[^>]*>/g, '<br><br><span style="color: #6366f1; font-weight: 800; font-size: 0.85rem; margin-right: 6px;">')
-                                .replace(/<\S*small>/g, '</span>')
-                                .replace(/<hr[^>]*>/g, '')
-                                .replace(/<a[^>]*>.*?<\S*a>/g, '') // remove ad links or navigation
-                                .replace(/<br>\S*<br>/g, '<div style="height: 0.8rem;"></div>');
+    // Inject LOCAL text immediately
+    setTimeout(() => {
+        let verses = window.bibleTextData ? window.bibleTextData[bookId][chap] : null;
+        if (!verses) {
+            document.getElementById('bible-native-container').innerHTML = `<div style="text-align: center; color: #ef4444; margin-top: 2rem;">성경 데이터를 불러오지 못했습니다.<br>잠시 후 다시 시도해주세요.</div>`;
+            return;
+        }
+        
+        let flatVerses = verses;
+        if (verses.length > 0 && Array.isArray(verses[0])) flatVerses = verses[0];
+        
+        let cleanHtml = flatVerses.map((v, idx) => {
+            if (typeof v === 'string') {
+                return `<span style="color: #6366f1; font-weight: 800; font-size: 0.85rem; margin-right: 8px; user-select: none;">${idx+1}</span><span style="margin-right: 0.5rem;">${v}</span><br><br>`;
+            }
+            return '';
+        }).join('');
         
         document.getElementById('bible-native-container').innerHTML = `
-            <div style="max-width: 600px; margin: 0 auto; padding-bottom: 2rem;">
-                <h2 style="color: var(--color-primary); border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; margin-bottom: 1rem;">${title}</h2>
-                ${cleanHtml}
+            <div style="max-width: 650px; margin: 0 auto; padding-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); border-bottom: 3px solid #f1f5f9; padding-bottom: 1.2rem; margin-bottom: 1.5rem; text-align: center; font-size: 1.8rem; letter-spacing: 2px;">${title}</h2>
+                <div style="text-align: justify; word-break: keep-all;">
+                    ${cleanHtml}
+                </div>
             </div>
         `;
-    }).catch(e => {
-        document.getElementById('bible-native-container').innerHTML = `<div style="text-align: center; color: #ef4444; margin-top: 2rem;">본문을 불러오지 못했습니다.<br>네트워크 접속 상태를 확인해주세요.</div>`;
-    });
+        document.getElementById('bible-native-container').scrollTop = 0;
+    }, 50);
     
     // Auto-save logic
     const textArea = document.getElementById('bible-comment-area');
