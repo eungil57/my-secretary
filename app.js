@@ -10,6 +10,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dateSubtitle) dateSubtitle.innerText = today.toLocaleDateString('ko-KR', options);
 
     initDashboard();
+
+    setTimeout(() => {
+        let script = document.createElement('script');
+        script.src = 'korean-bible-text.js';
+        script.onload = () => {
+            if (window.rawBibleJson && !window.bibleTextData?.gen) {
+                window.bibleTextData = {};
+                let bibleDataIds = ["gen","exo","lev","num","deu","jos","jdg","rut","1sa","2sa","1ki","2ki","1ch","2ch","ezr","neh","est","job","psa","pro","ecc","sng","isa","jer","lam","ezk","dan","hos","jol","amo","oba","jon","mic","nah","hab","zep","hag","zec","mal","mat","mrk","luk","jhn","act","rom","1co","2co","gal","eph","php","col","1th","2th","1ti","2ti","tit","phm","heb","jas","1pe","2pe","1jn","2jn","3jn","jud","rev"];
+                for(let i=0; i<66; i++) {
+                    let bookId = bibleDataIds[i];
+                    window.bibleTextData[bookId] = {};
+                    let chapters = window.rawBibleJson[i]? window.rawBibleJson[i].chapters : [];
+                    for(let c=0; c<chapters.length; c++) {
+                        window.bibleTextData[bookId][c+1] = chapters[c];
+                    }
+                }
+            }
+        };
+        document.body.appendChild(script);
+    }, 200);
 });
 
 window.switchTab = (tabId) => {

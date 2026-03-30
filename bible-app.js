@@ -337,9 +337,9 @@ window.toggleBibleChapter = (bookId, chap) => {
 
 window.promptBibleReader = (bookId) => {
     let book = window.bibleData.find(b => b.id === bookId);
-    let color = book.type === 'ot' ? '#d9bfa4' : '#f9a8d4'; // pastel brown vs pastel pink
-    let accent = book.type === 'ot' ? '#8c7d6e' : '#db2777';
-    let lightBg = book.type === 'ot' ? '#f5efe6' : '#fdf2f8';
+    let color = book.type === 'ot' ? '#A3B18A' : '#D4A373'; // Sage Green vs Terracotta
+    let accent = book.type === 'ot' ? '#3A5A40' : '#A04000';
+    let lightBg = book.type === 'ot' ? '#F6F7F4' : '#FDF7F2';
     
     let modal = document.getElementById('bible-chapter-selector-modal');
     if (!modal) {
@@ -439,23 +439,23 @@ window.openBibleReader = (bookId, chap) => {
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'bible-modal';
-        modal.className = 'modal-backdrop';
         document.body.appendChild(modal);
     }
+    modal.style.cssText = "display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 99999; justify-content: center; align-items: center; padding: 1.5rem; box-sizing: border-box;";
     modal.style.zIndex = '99999';
     
     modal.innerHTML = `
         <style>
-          .bible-modal-layout { flex: 1; display: flex; min-height: 0; flex-direction: row; flex-wrap: nowrap; overflow: hidden; }
-          .bible-modal-content { flex: 6; padding: 1.5rem 2rem; overflow-y: auto; background: white; border-right: 1px solid rgba(0,0,0,0.1); font-size: 1.1rem; line-height: 2.0; color: #1e293b; box-sizing: border-box; }
-          .bible-modal-comment { flex: 4; padding: 1.5rem; background: var(--bg-variant); display: flex; flex-direction: column; gap: 0.8rem; box-sizing: border-box; }
+          .bible-modal-layout { flex: 1; display: flex; min-height: 0; position: relative; }
+          .bible-modal-content { flex: 1; padding: 1.5rem 2rem; overflow-y: auto; background: white; font-size: 1.1rem; line-height: 2.0; color: #1e293b; box-sizing: border-box; padding-bottom: 80px; scroll-behavior: smooth; }
+          .bible-modal-comment-overlay { display: none; position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); z-index: 100; flex-direction: column; padding: 2rem; box-sizing: border-box; animation: slideUp 0.25s ease-out; }
+          @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
           @media (max-width: 768px) {
-              .bible-modal-layout { flex-direction: column; }
-              .bible-modal-content { flex: 1; padding: 1.5rem; border-right: none; border-bottom: 2px solid #e2e8f0; }
-              .bible-modal-comment { flex: none; height: 350px; }
+              .bible-modal-content { padding: 1.2rem; padding-bottom: 90px; }
+              .bible-modal-comment-overlay { padding: 1.2rem; }
           }
         </style>
-        <div class="glass-panel modal-content" style="width: 100%; max-width: 1100px; height: 90vh; display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; background: white;">
+        <div class="glass-panel modal-content" style="width: 100%; max-width: 800px; height: 90vh; display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; background: white; position: relative;">
             <div style="padding: 1.2rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(0,0,0,0.05); background: rgba(255,255,255,0.9); z-index: 10;">
                 <h3 id="bible-modal-title" style="margin: 0; font-size: 1.3rem; display: flex; align-items: center; gap: 0.5rem; color: var(--color-primary);">📖 <span id="bible-modal-title-text">${title}</span></h3>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
@@ -467,12 +467,20 @@ window.openBibleReader = (bookId, chap) => {
                 <div id="bible-native-container" class="bible-modal-content">
                     <div style="text-align: center; color: var(--text-muted); margin-top: 2rem;">성경 본문을 불러오는 중... ⏳</div>
                 </div>
-                <div class="bible-modal-comment">
-                    <h4 style="margin: 0; color: var(--color-primary); display: flex; justify-content: space-between; align-items: center;">
-                        <span>💬 묵상 / 코멘트 노트</span>
-                        <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);">자동 저장됨</span>
-                    </h4>
-                    <textarea id="bible-comment-area" style="flex: 1; border-radius: 12px; border: 1px solid #cbd5e1; padding: 1.2rem; resize: none; font-family: inherit; font-size: 1rem; background: #fdfdfd; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); line-height: 1.6;" placeholder="이 장을 읽으면서 느낀 점, 은혜받은 구절, 생각 등을 자유롭게 다이어리처럼 적어보세요...">${existingComment}</textarea>
+                
+                <button id="fab-comment" style="position: absolute; bottom: 20px; right: 20px; z-index: 50; background: var(--color-primary); color: white; border: none; border-radius: 50px; padding: 12px 24px; font-size: 1.05rem; font-weight: 700; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onclick="document.getElementById('bible-comment-overlay').style.display='flex'; document.getElementById('fab-comment').style.display='none'; setTimeout(()=>document.getElementById('bible-comment-area').focus(), 100);">
+                    💬 묵상 코멘트 쓰기
+                </button>
+
+                <div id="bible-comment-overlay" class="bible-modal-comment-overlay">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h4 style="margin: 0; color: var(--color-primary); font-size: 1.2rem;">💬 묵상 / 코멘트 노트</h4>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <span style="font-size: 0.85rem; font-weight: 600; color: #10b981;">✓ 자동 저장됨</span>
+                            <button class="btn btn-secondary" onclick="document.getElementById('bible-comment-overlay').style.display='none'; document.getElementById('fab-comment').style.display='inline-block';">요약창 닫기 ↓</button>
+                        </div>
+                    </div>
+                    <textarea id="bible-comment-area" style="flex: 1; border-radius: 12px; border: 1px solid #cbd5e1; padding: 1.2rem; resize: none; font-family: inherit; font-size: 1.05rem; background: #ffffff; box-shadow: inset 0 2px 6px rgba(0,0,0,0.03); line-height: 1.6;" placeholder="이 장을 읽으면서 느낀 점, 은혜받은 구절, 생각 등을 자유롭게 다이어리처럼 적어보세요...">${existingComment}</textarea>
                 </div>
             </div>
         </div>
