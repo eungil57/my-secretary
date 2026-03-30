@@ -13,6 +13,7 @@ class BibleTracker {
     }
     saveState() {
         localStorage.setItem('bible_progress_state', JSON.stringify(this.state));
+        if (window.firebaseSync && window.firebaseSync.saveBible) window.firebaseSync.saveBible(this.state);
     }
     isRead(bookId, chap) {
         return !!this.state.readChapters[`${bookId}-${chap}`];
@@ -32,6 +33,7 @@ class BibleTracker {
     }
 }
 const bibleEngine = new BibleTracker();
+window.bibleEngine = bibleEngine;
 
 window.initBibleDashboard = () => {
     let container = document.getElementById('bible-view-section');

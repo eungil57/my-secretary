@@ -1,4 +1,5 @@
 const engine = new window.StudyEngine();
+window.engine = engine;
 
 window.currentScheduleView = 'daily';
 

@@ -18,6 +18,8 @@
     <!-- Kinder English App -->
     <script src="english-data.js"></script>
     <script src="english-app.js"></script>
+    <!-- Firebase Sync -->
+    <script type="module" src="firebase-config.js"></script>
 </head>
 <body>
     <div id="app">
@@ -25,6 +27,11 @@
         <nav class="sidebar glass-panel">
             <div class="logo">
                 📚 <span>Study & Life</span>
+            </div>
+            
+            <!-- Login Widget -->
+            <div id="auth-status" style="margin-bottom: 1.5rem; text-align: center; padding: 0 0.5rem;">
+                <span style="font-size: 0.8rem; color: var(--text-muted);">로그인 확인 중...</span>
             </div>
             
             <div class="progress-section" style="margin-bottom: 2rem;">

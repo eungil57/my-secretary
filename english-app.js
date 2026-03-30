@@ -24,6 +24,7 @@ class KidsEnglishEngine {
     
     saveState() {
         localStorage.setItem('kids_english_state', JSON.stringify(this.state));
+        if (window.firebaseSync && window.firebaseSync.saveEnglish) window.firebaseSync.saveEnglish(this.state);
     }
     
     // Selects 1 daily card
@@ -84,6 +85,7 @@ class KidsEnglishEngine {
 }
 
 const engEngine = new KidsEnglishEngine();
+window.engEngine = engEngine;
 
 window.renderKidsEnglishWidget = () => {
     let container = document.getElementById('kids-english-container');
