@@ -178,3 +178,102 @@ h1 {
 .task-title { font-size: 1.5rem; margin-bottom: 0.5rem; line-height: 1.4; color: var(--text-main); }
 .task-details { color: var(--text-muted); font-size: 1rem; margin-bottom: 2rem; }
 .task-actions { display: flex; gap: 1rem; }
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    #app {
+        flex-direction: column;
+        padding: 0.75rem;
+        gap: 1rem;
+        height: auto;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    .sidebar {
+        width: 100%;
+        padding: 1.2rem;
+        border-radius: 20px;
+        order: -1; 
+    }
+
+    .logo {
+        margin-bottom: 1.2rem;
+        justify-content: center;
+        font-size: 1.4rem;
+    }
+    
+    .logo span { font-size: 1.2rem; }
+
+    .nav-menu {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        gap: 0.4rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .nav-menu::-webkit-scrollbar { display: none; }
+
+    .nav-item {
+        padding: 0.7rem 1rem;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .nav-item:hover { transform: none; }
+
+    .main-content {
+        padding: 0.5rem;
+        width: 100%;
+        gap: 1.2rem;
+        overflow-y: visible;
+    }
+
+    .top-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        text-align: left;
+    }
+
+    h1 { 
+        font-size: 1.8rem; 
+        line-height: 1.2;
+        width: 100%; 
+    }
+    .subtitle { font-size: 0.9rem; }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .weekly-grid, .monthly-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+    
+    .task-card { padding: 1.2rem; }
+    .task-title { font-size: 1.1rem; }
+    .task-details { font-size: 0.85rem; margin-bottom: 1.2rem; }
+    
+    .btn { padding: 0.7rem 1.2rem; font-size: 0.9rem; }
+    
+    /* Bible Reader Modal Mobile Fix */
+    .bible-reader-container {
+        flex-direction: column !important;
+        height: auto !important;
+        max-height: 80vh;
+    }
+    .bible-text-area, .commentary-area {
+        width: 100% !important;
+        height: 350px !important;
+        border-right: none !important;
+        border-bottom: 1px solid #eee;
+    }
+
+    .bible-book-row { flex-direction: column; gap: 0.5rem; }
+    .bible-book-name { width: 100%; font-size: 0.9rem; }
+}

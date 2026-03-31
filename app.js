@@ -1215,3 +1215,54 @@ window.submitPacingFlex = () => {
         window.customAlert('시간을 추가할 요일을 하나 이상 선택해주세요.');
     }
 };
+
+window.exportData = () => {
+    const data = {
+        planner: JSON.parse(localStorage.getItem('study_planner_state') || '{}'),
+        bible: JSON.parse(localStorage.getItem('bible_progress_state') || '{}'),
+        english: JSON.parse(localStorage.getItem('english_progress_state') || '{}')
+    };
+    const json = JSON.stringify(data, null, 2);
+    
+    // Create a temporary textarea to show and copy
+    let modal = document.getElementById('export-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'export-modal';
+        document.body.appendChild(modal);
+    }
+    modal.style.cssText = "display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 999999; justify-content: center; align-items: center; padding: 1.5rem; box-sizing: border-box;";
+    modal.innerHTML = `
+        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 2rem; background: white; border-radius: 16px;">
+            <h3 style="margin-bottom: 1rem; color: var(--color-primary);">💾 데이터 백업 (복사하기)</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">아래 코드를 전체 복사하여 보관하거나, 동기화하려는 다른 기기(또는 깃허브 주소)의 '데이터 복구' 메뉴에 붙여넣으세요.</p>
+            <textarea id="export-text" style="width: 100%; height: 200px; padding: 1rem; border-radius: 8px; border: 1px solid #cbd5e1; font-family: monospace; font-size: 0.8rem; margin-bottom: 1rem;" readonly>${json}</textarea>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-primary" style="flex: 1;" onclick="document.getElementById('export-text').select(); document.execCommand('copy'); alert('복사되었습니다!')">전체 복사하기</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('export-modal').style.display='none'">닫기</button>
+            </div>
+        </div>
+    `;
+};
+
+window.importData = () => {
+    const input = prompt('백업받은 데이터(JSON 코드)를 여기에 붙여넣어 주세요.\n(경고: 현재 기기의 모든 데이터가 덮어씌워집니다!)');
+    if (!input) return;
+    
+    try {
+        const data = JSON.parse(input);
+        let count = 0;
+        if (data.planner && Object.keys(data.planner).length > 0) { localStorage.setItem('study_planner_state', JSON.stringify(data.planner)); count++; }
+        if (data.bible && Object.keys(data.bible).length > 0) { localStorage.setItem('bible_progress_state', JSON.stringify(data.bible)); count++; }
+        if (data.english && Object.keys(data.english).length > 0) { localStorage.setItem('english_progress_state', JSON.stringify(data.english)); count++; }
+        
+        if (count > 0) {
+            alert('데이터 복구가 완료되었습니다! 페이지를 새로고침하여 동기화를 시작합니다.');
+            location.reload();
+        } else {
+            alert('가져올 유효한 데이터가 없습니다.');
+        }
+    } catch (e) {
+        alert('올바르지 않은 데이터 형식입니다. 다시 확인해 주세요.\n' + e.message);
+    }
+};
