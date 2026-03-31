@@ -446,21 +446,32 @@ window.openBibleReader = (bookId, chap) => {
     
     modal.innerHTML = `
         <style>
-          .bible-modal-layout { flex: 1; display: flex; min-height: 0; position: relative; }
-          .bible-modal-content { flex: 1; padding: 1.5rem 2rem; overflow-y: auto; background: white; font-size: 1.1rem; line-height: 2.0; color: #1e293b; box-sizing: border-box; padding-bottom: 80px; scroll-behavior: smooth; }
-          .bible-modal-comment-overlay { display: none; position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); z-index: 100; flex-direction: column; padding: 2rem; box-sizing: border-box; animation: slideUp 0.25s ease-out; }
-          @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-          @media (max-width: 768px) {
-              .bible-modal-content { padding: 1.2rem; padding-bottom: 90px; }
-              .bible-modal-comment-overlay { padding: 1.2rem; }
+          .bible-modal-layout { flex: 1; display: flex; min-height: 0; position: relative; flex-direction: column; }
+          .bible-modal-content { flex: 1; padding: 1.5rem 2.5rem; overflow-y: auto; background: white; font-size: 1.15rem; line-height: 2.1; color: #1e293b; box-sizing: border-box; scroll-behavior: smooth; }
+          .bible-modal-comment-overlay { display: none; position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); backdrop-filter: blur(15px); z-index: 100; flex-direction: column; padding: 2rem; box-sizing: border-box; animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+          .bible-nav-footer { padding: 2rem; border-top: 1px solid #f1f5f9; display: flex; justify-content: center; gap: 1.5rem; background: #fafafa; }
+          .nav-btn-bottom { flex: 1; max-width: 200px; padding: 1rem; border-radius: 12px; font-weight: 700; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s; }
+          
+          @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+          
+          @media (max-width: 600px) {
+              .bible-modal-content { padding: 1.2rem; font-size: 1.05rem; line-height: 1.9; }
+              .bible-modal-header { padding: 0.8rem 1rem !important; flex-wrap: wrap; gap: 0.5rem; }
+              .bible-modal-title { font-size: 1.1rem !important; width: 100%; }
+              .bible-header-btns { width: 100%; justify-content: space-between; display: flex; }
+              .bible-header-btns .btn { flex: 1; padding: 0.5rem !important; font-size: 0.8rem !important; }
+              .bible-nav-footer { padding: 1.5rem 1rem; gap: 0.8rem; }
+              .nav-btn-bottom { font-size: 0.9rem; padding: 0.8rem; }
+              #fab-comment { bottom: 15px !important; right: 15px !important; padding: 10px 18px !important; font-size: 0.9rem !important; }
           }
         </style>
-        <div class="glass-panel modal-content" style="width: 100%; max-width: 800px; height: 90vh; display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; background: white; position: relative;">
-            <div style="padding: 1.2rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(0,0,0,0.05); background: rgba(255,255,255,0.9); z-index: 10;">
-                <h3 id="bible-modal-title" style="margin: 0; font-size: 1.3rem; display: flex; align-items: center; gap: 0.5rem; color: var(--color-primary);">📖 <span id="bible-modal-title-text">${title}</span></h3>
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    ${!bibleEngine.isRead(bookId, chap) ? `<button class="btn btn-primary" onclick="window.markOpenedBibleRead()" style="background: #10b981; color: white;">✅ 이 장 다 읽음!</button>` : `<button class="btn btn-secondary" onclick="window.markOpenedBibleUnread()">❌ 읽음 취소</button>`}
-                    <button class="btn btn-secondary" onclick="window.closeBibleModal()" style="border: none;">✕ 닫기</button>
+        <div class="glass-panel modal-content" style="width: 100%; max-width: 850px; height: 95vh; display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; background: white; position: relative; border: none; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+            <div class="bible-modal-header" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; background: white; z-index: 10;">
+                <h3 id="bible-modal-title" class="bible-modal-title" style="margin: 0; font-size: 1.4rem; display: flex; align-items: center; gap: 0.6rem; color: var(--color-primary); font-weight: 800;">📖 <span id="bible-modal-title-text">${title}</span></h3>
+                <div class="bible-header-btns" style="display: flex; gap: 0.6rem; align-items: center;">
+                    <button class="btn btn-secondary" onclick="window.navigateBible(-1)" style="padding: 0.6rem 1rem; border-radius: 10px;">◀ 이전</button>
+                    <button class="btn btn-secondary" onclick="window.navigateBible(1)" style="padding: 0.6rem 1rem; border-radius: 10px;">다음 ▶</button>
+                    <button class="btn btn-secondary" onclick="window.closeBibleModal()" style="border: 1px solid #e2e8f0; border-radius: 10px; background: #fff;">✕ 닫기</button>
                 </div>
             </div>
             <div class="bible-modal-layout">
@@ -506,11 +517,19 @@ window.openBibleReader = (bookId, chap) => {
         }).join('');
         
         document.getElementById('bible-native-container').innerHTML = `
-            <div style="max-width: 650px; margin: 0 auto; padding-bottom: 2rem;">
+            <div style="max-width: 650px; margin: 0 auto; padding-bottom: 1rem;">
                 <h2 style="color: var(--color-primary); border-bottom: 3px solid #f1f5f9; padding-bottom: 1.2rem; margin-bottom: 1.5rem; text-align: center; font-size: 1.8rem; letter-spacing: 2px;">${title}</h2>
                 <div style="text-align: justify; word-break: keep-all;">
                     ${cleanHtml}
                 </div>
+            </div>
+            <div class="bible-nav-footer">
+                <button class="btn btn-secondary nav-btn-bottom" onclick="window.navigateBible(-1)">
+                    <span>◀ 이전 장</span>
+                </button>
+                <button class="btn btn-primary nav-btn-bottom" onclick="window.navigateBible(1)" style="background: #6366f1;">
+                    <span>다음 장으로 ▶</span>
+                </button>
             </div>
         `;
         document.getElementById('bible-native-container').scrollTop = 0;
@@ -540,18 +559,38 @@ window.closeBibleModal = () => {
     window.initBibleDashboard(); // Refresh to update 💬 bubbles
 };
 
-window.markOpenedBibleRead = () => {
-    if (window.currentBibleReaderBook && window.currentBibleReaderChap) {
-        bibleEngine.markReadRange(window.currentBibleReaderBook, window.currentBibleReaderChap, window.currentBibleReaderChap);
-        window.closeBibleModal();
+window.navigateBible = (direction) => {
+    let currentBookId = window.currentBibleReaderBook;
+    let currentCol = window.currentBibleReaderChap;
+    
+    let bookIndex = window.bibleData.findIndex(b => b.id === currentBookId);
+    let book = window.bibleData[bookIndex];
+    
+    let nextChap = currentCol + direction;
+    let nextBookId = currentBookId;
+    
+    if (nextChap > book.chapters) {
+        // Go to next book
+        if (bookIndex < window.bibleData.length - 1) {
+            nextBookId = window.bibleData[bookIndex + 1].id;
+            nextChap = 1;
+        } else {
+            window.customAlert('성경의 마지막 장입니다.');
+            return;
+        }
+    } else if (nextChap < 1) {
+        // Go to previous book
+        if (bookIndex > 0) {
+            let prevBook = window.bibleData[bookIndex - 1];
+            nextBookId = prevBook.id;
+            nextChap = prevBook.chapters;
+        } else {
+            window.customAlert('성경의 첫 장입니다.');
+            return;
+        }
     }
-};
-
-window.markOpenedBibleUnread = () => {
-    if (window.currentBibleReaderBook && window.currentBibleReaderChap) {
-        bibleEngine.markUnread(window.currentBibleReaderBook, window.currentBibleReaderChap);
-        window.closeBibleModal();
-    }
+    
+    window.openBibleReader(nextBookId, nextChap);
 };
 
 window.markBibleRange = () => {
