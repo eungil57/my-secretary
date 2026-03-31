@@ -179,6 +179,8 @@ h1 {
 .task-details { color: var(--text-muted); font-size: 1rem; margin-bottom: 2rem; }
 .task-actions { display: flex; gap: 1rem; }
 
+/* 2026-03-31 Mobile UI Optimized */
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
     #app {
