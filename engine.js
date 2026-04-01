@@ -256,9 +256,11 @@ window.StudyEngine = class {
                 }
 
                 let conflict = false;
-                if (effectiveBaseHours < 8.5 && todaysSubjects.length > 0) {
-                    if ((candidate === 'accounting' && todaysSubjects.includes('tax')) || 
-                        (candidate === 'tax' && todaysSubjects.includes('accounting'))) {
+                // Check against current picks AND deferred tasks for the day
+                let allTodaySubjs = [...todaysSubjects, ...subjectsWithDeferredToday];
+                if (effectiveBaseHours < 10.0 && allTodaySubjs.length > 0) {
+                    if ((candidate === 'accounting' && allTodaySubjs.includes('tax')) || 
+                        (candidate === 'tax' && allTodaySubjs.includes('accounting'))) {
                         conflict = true;
                     }
                 }
@@ -360,6 +362,14 @@ window.StudyEngine = class {
                         let diffDays = Math.round(diffTime / (1000 * 3600 * 24));
                         
                         if (reviewDays.includes(diffDays) && reviewAdded < 4 && effectiveBaseHours > 0.1) {
+                            // EXTRA FIX: Prevent tax/accounting conflict in reviews too
+                            let allTday = [...todaysSubjects, ...subjectsWithDeferredToday, ...newSchedule[dateStr].map(t => t.subjectId)];
+                            if (effectiveBaseHours < 10.0) {
+                                if ((subjKey === 'tax' && allTday.includes('accounting')) || 
+                                    (subjKey === 'accounting' && allTday.includes('tax'))) {
+                                    continue; // Skip this review until another day if it conflicts
+                                }
+                            }
                             // User request: "스케쥴 목록에도 복습은 젤 밑에 넣어주고"
                             // Apply Feedback AI Multiplier
                             let fb = p && p.feedback ? p.feedback : 'normal';
