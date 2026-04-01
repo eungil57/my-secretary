@@ -256,7 +256,7 @@ window.StudyEngine = class {
                 }
 
                 let conflict = false;
-                if (effectiveBaseHours < 6.0 && todaysSubjects.length > 0) {
+                if (effectiveBaseHours < 8.5 && todaysSubjects.length > 0) {
                     if ((candidate === 'accounting' && todaysSubjects.includes('tax')) || 
                         (candidate === 'tax' && todaysSubjects.includes('accounting'))) {
                         conflict = true;
