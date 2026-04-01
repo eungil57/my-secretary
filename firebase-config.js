@@ -33,14 +33,18 @@ window.firebaseSync = {
             if (data.planner) { window.engine.state = data.planner; merged = true; }
             if (data.bible) { window.bibleEngine.state = data.bible; merged = true; }
             if (data.english) { window.engEngine.state = data.english; merged = true; }
+            
+            if (merged) {
+                window.engine.saveState();
+                window.bibleEngine.saveState();
+                window.engEngine.saveState();
+            }
         } else {
-            console.log("No remote data found, starting fresh and treating local data as source of truth.");
-        }
-        
-        if (merged) {
-            window.engine.saveState();
-            window.bibleEngine.saveState();
-            window.engEngine.saveState();
+            console.log("No remote data found, uploading local data as source of truth.");
+            // NEW: Upload local data to cloud so other devices can sync immediately
+            if (window.engine?.state) window.firebaseSync.savePlanner(window.engine.state);
+            if (window.bibleEngine?.state) window.firebaseSync.saveBible(window.bibleEngine.state);
+            if (window.engEngine?.state) window.firebaseSync.saveEnglish(window.engEngine.state);
         }
         
         window.engine.generateSchedule();

@@ -1246,7 +1246,28 @@ window.exportData = () => {
 };
 
 window.importData = () => {
-    const input = prompt('백업받은 데이터(JSON 코드)를 여기에 붙여넣어 주세요.\n(경고: 현재 기기의 모든 데이터가 덮어씌워집니다!)');
+    let modal = document.getElementById('import-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'import-modal';
+        document.body.appendChild(modal);
+    }
+    modal.style.cssText = "display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 999999; justify-content: center; align-items: center; padding: 1.5rem; box-sizing: border-box;";
+    modal.innerHTML = `
+        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 2rem; background: white; border-radius: 16px;">
+            <h3 style="margin-bottom: 1rem; color: #10b981;">📥 데이터 복구 (가져오기)</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">백업받은 데이터(JSON 코드)를 아래 입력창에 붙여넣어 주세요.<br><span style="color:#ef4444; font-weight:700;">(경고: 현재 기기의 모든 데이터가 덮어씌워집니다!)</span></p>
+            <textarea id="import-text" style="width: 100%; height: 200px; padding: 1rem; border-radius: 8px; border: 1px solid #cbd5e1; font-family: monospace; font-size: 0.8rem; margin-bottom: 1rem;" placeholder='{"planner": {...}, "bible": {...}}'></textarea>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-primary" style="flex: 1; background: #10b981;" onclick="window.submitImport()">가져오기 및 새로고침 🔄</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('import-modal').style.display='none'">취소</button>
+            </div>
+        </div>
+    `;
+};
+
+window.submitImport = () => {
+    const input = document.getElementById('import-text').value.trim();
     if (!input) return;
     
     try {
