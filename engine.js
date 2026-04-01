@@ -293,7 +293,8 @@ window.StudyEngine = class {
                 if (dateStr === todayStrForCount && completedTodayPerSubj[sub]) {
                     subjectBuckets[sub] -= (completedTodayPerSubj[sub] * 1.5);
                 }
-                while (subjectBuckets[sub] > 0.5 && pending[sub] && pending[sub].length > 0 && effectiveBaseHours > 0.5 && sanity++ < 50) {
+                // 0.5시간 이하로 아주 적은 시간만 남았을 때는 더 이상 무리하게 과목을 추가하지 않음
+                while (subjectBuckets[sub] > 0.3 && pending[sub] && pending[sub].length > 0 && effectiveBaseHours > 0.3 && sanity++ < 50) {
                     let chapter = pending[sub].shift();
                     
                     // AI Adaptive Pace Learning Multiplier (Chapter specific)
@@ -302,8 +303,9 @@ window.StudyEngine = class {
                     if (sub === 'tax') baseH *= 2.0;
                     let eHours = baseH * mult; 
                     
+                    // 목표 시간이 0.5시간 등 아주 작을 때는 남은 버킷만큼만 할당하여 정확히 시간을 맞춤
                     if (eHours > subjectBuckets[sub]) eHours = subjectBuckets[sub]; 
-                    if (eHours < 0.5) eHours = subjectBuckets[sub]; 
+                    if (eHours < 0.2) eHours = 0.2; // 최소 단위는 0.2 (약 12분)
                     
                     newSchedule[dateStr].push({
                         subjectId: sub,

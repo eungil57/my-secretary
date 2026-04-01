@@ -23,7 +23,7 @@ window.firebaseSync = {
         window.firebaseSync.userId = user.uid;
         document.getElementById('auth-status').innerHTML = `
             <div id="sync-indicator" style="padding: 0.5rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #059669; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" title="클릭하여 즉시 강제 동기화 (V4)">
-                <span>☁️ 동기화 켜짐 <small style="opacity:0.5; font-size:0.6rem;">V4</small></span>
+                <span>☁️ 동기화 켜짐 <strong style="color: #8b5cf6; font-size: 0.8rem; margin-left: 6px; background: #e0e7ff; padding: 1px 4px; border-radius: 4px;">V5</strong></span>
                 <button id="logout-btn" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:#ef4444; font-weight:700; padding:0;">로그아웃</button>
             </div>
         `;
@@ -106,7 +106,9 @@ window.firebaseSync = {
             await window.firebaseSync.onLogin({ uid: window.firebaseSync.userId });
             window.firebaseSync.setSyncStatus('success');
             // Force redraw everything
+            if (window.initDashboard) window.initDashboard();
             if (window.renderBibleTable) window.renderBibleTable();
+            window.customAlert('☁️ 클라우드에서 최신 데이터를 강제로 불러왔습니다.');
         } catch (e) {
             console.error("Manual Sync Error:", e);
             window.firebaseSync.setSyncStatus('error');
