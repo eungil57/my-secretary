@@ -21,7 +21,7 @@ window.firebaseSync = {
     userId: null,
     onLogin: async (user) => {
         window.firebaseSync.userId = user.uid;
-        document.getElementById('auth-status').innerHTML = `<div id="sync-indicator" style="padding: 0.5rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #059669; display: flex; align-items: center; justify-content: space-between;"><span>☁️ 동기화 켜짐</span><button onclick="window.firebaseSync.logout()" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:#ef4444; font-weight:700; padding:0;">로그아웃</button></div>`;
+        document.getElementById('auth-status').innerHTML = `<div id="sync-indicator" onclick="window.firebaseSync.manualSync()" style="padding: 0.5rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #059669; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" title="클릭하여 즉시 강제 동기화"><span>☁️ 동기화 켜짐</span><button onclick="event.stopPropagation(); window.firebaseSync.logout()" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:#ef4444; font-weight:700; padding:0;">로그아웃</button></div>`;
         
         const docRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(docRef);
@@ -73,6 +73,20 @@ window.firebaseSync = {
             console.log(`[${storageKey}] Local data is newer. Keeping local...`);
             // 로컬이 최성이면 로컬 유지 (나중에 uploadAll이 클라우드로 보냄)
             return local; 
+        }
+    },
+
+    manualSync: async () => {
+        if (!window.firebaseSync.userId) return;
+        window.firebaseSync.setSyncStatus('syncing');
+        try {
+            await window.firebaseSync.onLogin({ uid: window.firebaseSync.userId });
+            window.firebaseSync.setSyncStatus('success');
+            // Force redraw everything
+            if (window.renderBibleTable) window.renderBibleTable();
+        } catch (e) {
+            console.error("Manual Sync Error:", e);
+            window.firebaseSync.setSyncStatus('error');
         }
     },
 
