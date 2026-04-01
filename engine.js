@@ -392,7 +392,7 @@ window.StudyEngine = class {
         }
 
         this.state.schedule = newSchedule;
-        this.saveState();
+        this.saveState(true); 
     }
 
     getScheduleForDate(dateStr) {
