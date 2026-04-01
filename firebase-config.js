@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -22,8 +22,8 @@ window.firebaseSync = {
     onLogin: async (user) => {
         window.firebaseSync.userId = user.uid;
         document.getElementById('auth-status').innerHTML = `
-            <div id="sync-indicator" style="padding: 0.5rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #059669; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" title="클릭하여 즉시 동기화 (V8)">
-                <span>☁️ 동기화 켜짐 <strong style="color: #ffffff; font-size: 0.85rem; margin-left: 6px; background: #8b5cf6; padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">V8</strong></span>
+            <div id="sync-indicator" style="padding: 0.5rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #1d4ed8; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" title="클릭하여 즉시 동기화 (V9)">
+                <span>☁️ 동기화 켜짐 <strong style="color: #ffffff; font-size: 0.85rem; margin-left: 6px; background: #3b82f6; padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">V9 실시간</strong></span>
                 <button id="logout-btn" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:#ef4444; font-weight:700; padding:0;">로그아웃</button>
             </div>
         `;
@@ -45,38 +45,57 @@ window.firebaseSync = {
         }
         
         const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
         
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            console.log("Remote data found, performing timestamp-aware sync...");
-            
-            // Smart Sync for Planner
-            if (data.planner) {
-                window.engine.state = window.firebaseSync.smartSync(window.engine.state, data.planner, 'study_planner_state');
-                window.engine.saveState(true); // Don't override cloud timestamp
+        // 실시간 클라우드 감지 시작 (V9 핵심)
+        if (window.firebaseSync.unsubscribe) window.firebaseSync.unsubscribe();
+        window.firebaseSync.unsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists() && !docSnap.metadata.hasPendingWrites) {
+                const data = docSnap.data();
+                console.log("Remote changes detected! Syncing...");
+                
+                let changed = false;
+                // Smart Sync for Planner
+                if (data.planner) {
+                    const merged = window.firebaseSync.smartSync(window.engine.state, data.planner, 'study_planner_state');
+                    if (JSON.stringify(merged) !== JSON.stringify(window.engine.state)) {
+                        window.engine.state = merged;
+                        window.engine.saveState(true);
+                        changed = true;
+                    }
+                }
+                // Smart Sync for Bible
+                if (data.bible) {
+                    const merged = window.firebaseSync.smartSync(window.bibleEngine.state, data.bible, 'bible_progress_state');
+                    if (JSON.stringify(merged) !== JSON.stringify(window.bibleEngine.state)) {
+                        window.bibleEngine.state = merged;
+                        window.bibleEngine.saveState(true);
+                        changed = true;
+                    }
+                }
+                // Smart Sync for English
+                if (data.english) {
+                    const merged = window.firebaseSync.smartSync(window.engEngine.state, data.english, 'english_progress_state');
+                    if (JSON.stringify(merged) !== JSON.stringify(window.engEngine.state)) {
+                        window.engEngine.state = merged;
+                        window.engEngine.saveState(true);
+                        changed = true;
+                    }
+                }
+                
+                if (changed) {
+                    window.engine.generateSchedule();
+                    if (window.initDashboard) window.initDashboard();
+                    if (window.initBibleDashboard) window.initBibleDashboard();
+                    if (window.initEnglishDashboard) window.initEnglishDashboard();
+                    console.log("UI updated by real-time sync.");
+                }
             }
-            // Smart Sync for Bible
-            if (data.bible) {
-                window.bibleEngine.state = window.firebaseSync.smartSync(window.bibleEngine.state, data.bible, 'bible_progress_state');
-                window.bibleEngine.saveState(true); // Don't override cloud timestamp
-            }
-            // Smart Sync for English
-            if (data.english) {
-                window.engEngine.state = window.firebaseSync.smartSync(window.engEngine.state, data.english, 'english_progress_state');
-                window.engEngine.saveState(true); // Don't override cloud timestamp
-            }
-            
-            await window.firebaseSync.uploadAll();
-        } else {
-            console.log("No remote data found, initial upload.");
+        });
+        
+        const initialSnap = await getDoc(docRef);
+        if (!initialSnap.exists()) {
             await window.firebaseSync.uploadAll();
         }
-        
-        window.engine.generateSchedule();
-        if (window.initDashboard) window.initDashboard();
-        if (window.initBibleDashboard) window.initBibleDashboard();
-        if (window.initEnglishDashboard) window.initEnglishDashboard();
     },
     
     // 타임스탬프를 비교하여 더 최신 데이터를 선택합니다. (삭제/취소 반영을 위해)
