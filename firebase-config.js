@@ -22,8 +22,8 @@ window.firebaseSync = {
     onLogin: async (user) => {
         window.firebaseSync.userId = user.uid;
         document.getElementById('auth-status').innerHTML = `
-            <div id="sync-indicator" style="padding: 0.5rem; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #7c3aed; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" title="클릭하여 즉시 동기화 (V10)">
-                <span>☁️ 동기화 켜짐 <strong style="color: #ffffff; font-size: 0.85rem; margin-left: 6px; background: #8b5cf6; padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">V10 실시간</strong></span>
+            <div id="sync-indicator" style="padding: 0.5rem; background: rgba(124, 58, 237, 0.1); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #6d28d9; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" title="클릭하여 서버에서 강제 새로고침 (V11)">
+                <span>☁️ 동기화 켜짐 <strong style="color: #ffffff; font-size: 0.85rem; margin-left: 6px; background: #7c3aed; padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">V11 실시간</strong></span>
                 <button id="logout-btn" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:#ef4444; font-weight:700; padding:0;">로그아웃</button>
             </div>
         `;
@@ -46,40 +46,37 @@ window.firebaseSync = {
         
         const docRef = doc(db, "users", user.uid);
         
-        // 실시간 클라우드 감지 시작 (V9 핵심)
+        // 실시간 클라우드 감지 시작 (V11: 콘텐츠 기반 공격적 동기화)
         if (window.firebaseSync.unsubscribe) window.firebaseSync.unsubscribe();
         window.firebaseSync.unsubscribe = onSnapshot(docRef, (docSnap) => {
+            // hasPendingWrites가 false일 때(순수 리모트 변화)만 즉시 수용
             if (docSnap.exists() && !docSnap.metadata.hasPendingWrites) {
                 const data = docSnap.data();
-                console.log("Remote changes detected! Syncing...");
+                console.log("Remote data received. Checking for changes...");
                 
                 let changed = false;
-                // Smart Sync for Planner
-                if (data.planner) {
-                    const merged = window.firebaseSync.smartSync(window.engine.state, data.planner, 'study_planner_state');
-                    if (JSON.stringify(merged) !== JSON.stringify(window.engine.state)) {
-                        window.engine.state = merged;
-                        window.engine.saveState(true);
-                        changed = true;
-                    }
+                
+                // Planner Sync: 시간비교 없이 내용 다르면 무조건 업데이트
+                if (data.planner && JSON.stringify(data.planner) !== JSON.stringify(window.engine.state)) {
+                    console.log("Planner cloud data differs. Overwriting...");
+                    window.engine.state = data.planner;
+                    window.engine.saveState(true);
+                    changed = true;
                 }
-                // Smart Sync for Bible
-                if (data.bible) {
-                    const merged = window.firebaseSync.smartSync(window.bibleEngine.state, data.bible, 'bible_progress_state');
-                    if (JSON.stringify(merged) !== JSON.stringify(window.bibleEngine.state)) {
-                        window.bibleEngine.state = merged;
-                        window.bibleEngine.saveState(true);
-                        changed = true;
-                    }
+                
+                // Bible Sync: 시간비교 없이 내용 다르면 무조건 업데이트 (취소 반영 핵심)
+                if (data.bible && JSON.stringify(data.bible) !== JSON.stringify(window.bibleEngine.state)) {
+                    console.log("Bible cloud data differs. Overwriting...");
+                    window.bibleEngine.state = data.bible;
+                    window.bibleEngine.saveState(true);
+                    changed = true;
                 }
-                // Smart Sync for English
-                if (data.english) {
-                    const merged = window.firebaseSync.smartSync(window.engEngine.state, data.english, 'english_progress_state');
-                    if (JSON.stringify(merged) !== JSON.stringify(window.engEngine.state)) {
-                        window.engEngine.state = merged;
-                        window.engEngine.saveState(true);
-                        changed = true;
-                    }
+                
+                // English Sync
+                if (data.english && JSON.stringify(data.english) !== JSON.stringify(window.engEngine.state)) {
+                    window.engEngine.state = data.english;
+                    window.engEngine.saveState(true);
+                    changed = true;
                 }
                 
                 if (changed) {
@@ -87,13 +84,21 @@ window.firebaseSync = {
                     if (window.initDashboard) window.initDashboard();
                     if (window.initBibleDashboard) window.initBibleDashboard();
                     if (window.initEnglishDashboard) window.initEnglishDashboard();
-                    console.log("UI updated by real-time sync.");
                 }
             }
         });
         
+        // 초기 로드 시에도 서버 데이터가 있으면 무조건 일단 받기
         const initialSnap = await getDoc(docRef);
-        if (!initialSnap.exists()) {
+        if (initialSnap.exists()) {
+            const data = initialSnap.data();
+            if (data.planner) { window.engine.state = data.planner; window.engine.saveState(true); }
+            if (data.bible) { window.bibleEngine.state = data.bible; window.bibleEngine.saveState(true); }
+            if (data.english) { window.engEngine.state = data.english; window.engEngine.saveState(true); }
+            window.engine.generateSchedule();
+            if (window.initDashboard) window.initDashboard();
+            if (window.initBibleDashboard) window.initBibleDashboard();
+        } else {
             await window.firebaseSync.uploadAll();
         }
     },
