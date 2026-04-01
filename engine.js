@@ -36,6 +36,7 @@ window.StudyEngine = class {
     }
 
     saveState() {
+        this.state.lastUpdated = Date.now();
         localStorage.setItem('study_planner_state', JSON.stringify(this.state));
         if (window.firebaseSync && window.firebaseSync.savePlanner) window.firebaseSync.savePlanner(this.state);
     }

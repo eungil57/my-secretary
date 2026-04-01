@@ -12,6 +12,7 @@ class BibleTracker {
         else this.state = { readChapters: {}, sermons: [], chapterComments: {} };
     }
     saveState() {
+        this.state.lastUpdated = Date.now();
         localStorage.setItem('bible_progress_state', JSON.stringify(this.state));
         if (window.firebaseSync && window.firebaseSync.saveBible) window.firebaseSync.saveBible(this.state);
     }

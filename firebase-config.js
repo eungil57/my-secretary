@@ -28,28 +28,27 @@ window.firebaseSync = {
         
         if (docSnap.exists()) {
             const data = docSnap.data();
-            console.log("Remote data found, performing smart merge...");
+            console.log("Remote data found, performing timestamp-aware sync...");
             
-            // Smart Merge for Planner
+            // Smart Sync for Planner
             if (data.planner) {
-                window.engine.state = window.firebaseSync.mergePlanner(window.engine.state, data.planner);
+                window.engine.state = window.firebaseSync.smartSync(window.engine.state, data.planner, 'study_planner_state');
                 window.engine.saveState();
             }
-            // Smart Merge for Bible
+            // Smart Sync for Bible
             if (data.bible) {
-                window.bibleEngine.state = window.firebaseSync.mergeBible(window.bibleEngine.state, data.bible);
+                window.bibleEngine.state = window.firebaseSync.smartSync(window.bibleEngine.state, data.bible, 'bible_progress_state');
                 window.bibleEngine.saveState();
             }
-            // Smart Merge for English
+            // Smart Sync for English
             if (data.english) {
-                window.engEngine.state = window.firebaseSync.mergeEnglish(window.engEngine.state, data.english);
+                window.engEngine.state = window.firebaseSync.smartSync(window.engEngine.state, data.english, 'english_progress_state');
                 window.engEngine.saveState();
             }
             
-            // Upload the merged state back to cloud to ensure consistency
             await window.firebaseSync.uploadAll();
         } else {
-            console.log("No remote data found, uploading local data as source of truth.");
+            console.log("No remote data found, initial upload.");
             await window.firebaseSync.uploadAll();
         }
         
@@ -59,64 +58,22 @@ window.firebaseSync = {
         if (window.initEnglishDashboard) window.initEnglishDashboard();
     },
     
-    // Merger Helpers to prevent overwriting local progress with empty cloud data
-    mergePlanner: (local, remote) => {
+    // 타임스탬프를 비교하여 더 최신 데이터를 선택합니다. (삭제/취소 반영을 위해)
+    smartSync: (local, remote, storageKey) => {
         if (!remote) return local;
-        let merged = { ...remote, ...local }; // Local settings take precedence for now
+        if (!local || !local.lastUpdated) return remote;
         
-        // Progress: Union of completions
-        let lp = local.progress || {};
-        let rp = remote.progress || {};
-        merged.progress = { ...rp, ...lp };
-        for (let k in rp) {
-            if (rp[k].status === 'completed' && (!lp[k] || lp[k].status !== 'completed')) {
-                merged.progress[k] = rp[k];
-            }
+        const localTime = local.lastUpdated || 0;
+        const remoteTime = remote.lastUpdated || 0;
+        
+        if (remoteTime > localTime) {
+            console.log(`[${storageKey}] Cloud data is newer. Syncing from cloud...`);
+            return remote; // 클라우드가 최신이면 덮어씌움 (취소/삭제 반영)
+        } else {
+            console.log(`[${storageKey}] Local data is newer. Keeping local...`);
+            // 로컬이 최성이면 로컬 유지 (나중에 uploadAll이 클라우드로 보냄)
+            return local; 
         }
-        
-        // SkippedDays & ExtraStudyDays: Union
-        merged.skippedDays = [...new Set([...(remote.skippedDays || []), ...(local.skippedDays || [])])];
-        if (remote.settings?.extraStudyDays || local.settings?.extraStudyDays) {
-            if (!merged.settings) merged.settings = local.settings || remote.settings;
-            merged.settings.extraStudyDays = [...new Set([...(remote.settings?.extraStudyDays || []), ...(local.settings?.extraStudyDays || [])])];
-        }
-        
-        // Custom Tasks: Union by ID
-        let combinedCT = [...(remote.customTasks || []), ...(local.customTasks || [])];
-        let seenCT = new Set();
-        merged.customTasks = combinedCT.filter(t => {
-            if (seenCT.has(t.id)) return false;
-            seenCT.add(t.id);
-            return true;
-        });
-        
-        return merged;
-    },
-    
-    mergeBible: (local, remote) => {
-        if (!remote) return local;
-        let merged = { ...remote, ...local };
-        merged.readChapters = { ...(remote.readChapters || {}), ...(local.readChapters || {}) };
-        merged.chapterComments = { ...(remote.chapterComments || {}), ...(local.chapterComments || {}) };
-        
-        // Sermons: Union by date + range
-        let combinedSermons = [...(remote.sermons || []), ...(local.sermons || [])];
-        let seenS = new Set();
-        merged.sermons = combinedSermons.filter(s => {
-            let key = `${s.date}-${s.range}`;
-            if (seenS.has(key)) return false;
-            seenS.add(key);
-            return true;
-        });
-        return merged;
-    },
-    
-    mergeEnglish: (local, remote) => {
-        if (!remote) return local;
-        let merged = { ...remote, ...local };
-        merged.progress = { ...(remote.progress || {}), ...(local.progress || {}) };
-        merged.bookmarks = { ...(remote.bookmarks || {}), ...(local.bookmarks || {}) };
-        return merged;
     },
 
     uploadAll: async () => {

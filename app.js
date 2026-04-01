@@ -1067,9 +1067,9 @@ window.cancelComplete = (id) => {
     if (!p) return;
     
     let oldDate = p.completedAt;
-    p.status = 'pending';
-    delete p.completedAt;
-    delete p.ratio;
+    
+    // 완전히 삭제해야 AI 스케줄러가 미완료 상태로 인식하고 오늘 할 일에 다시 넣습니다.
+    delete engine.state.progress[id];
     
     // Subtract from dailySpent
     if (oldDate && engine.state.dailySpent && engine.state.dailySpent[oldDate]) {
@@ -1085,7 +1085,7 @@ window.cancelComplete = (id) => {
     engine.saveState();
     engine.generateSchedule();
     initDashboard();
-    window.customAlert('✅ 학습 완료 기록이 취소되었습니다.');
+    window.customAlert('✅ 학습 완료 기록이 취소되어 오늘 할 일로 돌아왔습니다.');
 };
 
 window.dragTaskStart = (event, id) => {
