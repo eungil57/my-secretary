@@ -70,17 +70,32 @@ window.firebaseSync = {
         await signOut(auth);
         location.reload();
     },
-    savePlanner: (state) => {
+    savePlanner: async (state) => {
         if (!window.firebaseSync.userId) return;
-        setDoc(doc(db, "users", window.firebaseSync.userId), { planner: state }, { merge: true });
+        try {
+            await setDoc(doc(db, "users", window.firebaseSync.userId), { planner: state }, { merge: true });
+        } catch (e) {
+            console.error("Firestore Save Error (Planner):", e);
+            alert("⚠️ 클라우드 동기화 실패 (플래너): " + e.message + "\n인터넷 연결이나 Firebase 권한을 확인해주세요.");
+        }
     },
-    saveBible: (state) => {
+    saveBible: async (state) => {
         if (!window.firebaseSync.userId) return;
-        setDoc(doc(db, "users", window.firebaseSync.userId), { bible: state }, { merge: true });
+        try {
+            await setDoc(doc(db, "users", window.firebaseSync.userId), { bible: state }, { merge: true });
+        } catch (e) {
+            console.error("Firestore Save Error (Bible):", e);
+            alert("⚠️ 클라우드 동기화 실패 (성경): " + e.message);
+        }
     },
-    saveEnglish: (state) => {
+    saveEnglish: async (state) => {
         if (!window.firebaseSync.userId) return;
-        setDoc(doc(db, "users", window.firebaseSync.userId), { english: state }, { merge: true });
+        try {
+            await setDoc(doc(db, "users", window.firebaseSync.userId), { english: state }, { merge: true });
+        } catch (e) {
+            console.error("Firestore Save Error (English):", e);
+            alert("⚠️ 클라우드 동기화 실패 (영어): " + e.message);
+        }
     }
 };
 

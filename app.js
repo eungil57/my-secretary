@@ -1267,23 +1267,41 @@ window.importData = () => {
 };
 
 window.submitImport = () => {
-    const input = document.getElementById('import-text').value.trim();
-    if (!input) return;
+    let rawInput = document.getElementById('import-text').value.trim();
+    if (!rawInput) return;
     
+    // 아이패드/모바일 특유의 스마트 구두점(둥근 따옴표) 및 공백 정제
+    let sanitized = rawInput
+        .replace(/[“”]/g, '"')
+        .replace(/[‘’]/g, "'")
+        .replace(/\s+/g, ' ');
+
     try {
-        const data = JSON.parse(input);
+        const data = JSON.parse(sanitized);
         let count = 0;
-        if (data.planner && Object.keys(data.planner).length > 0) { localStorage.setItem('study_planner_state', JSON.stringify(data.planner)); count++; }
-        if (data.bible && Object.keys(data.bible).length > 0) { localStorage.setItem('bible_progress_state', JSON.stringify(data.bible)); count++; }
-        if (data.english && Object.keys(data.english).length > 0) { localStorage.setItem('english_progress_state', JSON.stringify(data.english)); count++; }
+        
+        // 데이터 구조 검증 및 저장
+        if (data.planner && typeof data.planner === 'object') { 
+            localStorage.setItem('study_planner_state', JSON.stringify(data.planner)); 
+            count++; 
+        }
+        if (data.bible && typeof data.bible === 'object') { 
+            localStorage.setItem('bible_progress_state', JSON.stringify(data.bible)); 
+            count++; 
+        }
+        if (data.english && typeof data.english === 'object') { 
+            localStorage.setItem('english_progress_state', JSON.stringify(data.english)); 
+            count++; 
+        }
         
         if (count > 0) {
-            alert('데이터 복구가 완료되었습니다! 페이지를 새로고침하여 동기화를 시작합니다.');
+            alert('✅ 데이터 복구가 성공적으로 완료되었습니다! 확인을 누르면 동기화를 재개합니다.');
             location.reload();
         } else {
-            alert('가져올 유효한 데이터가 없습니다.');
+            alert('⚠️ 해당 코드에 유효한 학습 진도 데이터가 포함되어 있지 않습니다.');
         }
     } catch (e) {
-        alert('올바르지 않은 데이터 형식입니다. 다시 확인해 주세요.\n' + e.message);
+        console.error("JSON Parse Error:", e);
+        alert('❌ 올바르지 않은 데이터 형식입니다. 복사한 내용이 전체인지 다시 확인해 주세요.\n(오류 메시지: ' + e.message + ')');
     }
 };
