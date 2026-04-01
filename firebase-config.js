@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -22,8 +22,8 @@ window.firebaseSync = {
     onLogin: async (user) => {
         window.firebaseSync.userId = user.uid;
         document.getElementById('auth-status').innerHTML = `
-            <div id="sync-indicator" style="padding: 0.5rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #1d4ed8; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" title="클릭하여 즉시 동기화 (V9)">
-                <span>☁️ 동기화 켜짐 <strong style="color: #ffffff; font-size: 0.85rem; margin-left: 6px; background: #3b82f6; padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">V9 실시간</strong></span>
+            <div id="sync-indicator" style="padding: 0.5rem; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #7c3aed; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" title="클릭하여 즉시 동기화 (V10)">
+                <span>☁️ 동기화 켜짐 <strong style="color: #ffffff; font-size: 0.85rem; margin-left: 6px; background: #8b5cf6; padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">V10 실시간</strong></span>
                 <button id="logout-btn" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:#ef4444; font-weight:700; padding:0;">로그아웃</button>
             </div>
         `;
@@ -165,7 +165,8 @@ window.firebaseSync = {
         if (!window.firebaseSync.userId) return;
         window.firebaseSync.setSyncStatus('syncing');
         try {
-            await setDoc(doc(db, "users", window.firebaseSync.userId), { planner: state }, { merge: true });
+            // Use updateDoc to replace the atomic object, supporting deletions/unchecks
+            await updateDoc(doc(db, "users", window.firebaseSync.userId), { planner: state });
             window.firebaseSync.setSyncStatus('success');
         } catch (e) {
             console.error("Firestore Save Error (Planner):", e);
@@ -176,7 +177,7 @@ window.firebaseSync = {
         if (!window.firebaseSync.userId) return;
         window.firebaseSync.setSyncStatus('syncing');
         try {
-            await setDoc(doc(db, "users", window.firebaseSync.userId), { bible: state }, { merge: true });
+            await updateDoc(doc(db, "users", window.firebaseSync.userId), { bible: state });
             window.firebaseSync.setSyncStatus('success');
         } catch (e) {
             console.error("Firestore Save Error (Bible):", e);
@@ -187,7 +188,7 @@ window.firebaseSync = {
         if (!window.firebaseSync.userId) return;
         window.firebaseSync.setSyncStatus('syncing');
         try {
-            await setDoc(doc(db, "users", window.firebaseSync.userId), { english: state }, { merge: true });
+            await updateDoc(doc(db, "users", window.firebaseSync.userId), { english: state });
             window.firebaseSync.setSyncStatus('success');
         } catch (e) {
             console.error("Firestore Save Error (English):", e);
