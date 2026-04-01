@@ -182,18 +182,25 @@ window.firebaseSync = {
     setSyncStatus: (status) => {
         const indicator = document.getElementById('sync-indicator');
         if (!indicator) return;
+        
+        // Clear any existing timeout
+        if (window.syncStatusTimeout) clearTimeout(window.syncStatusTimeout);
+        
         if (status === 'syncing') {
             indicator.querySelector('span').innerHTML = '🔄 동기화 중...';
             indicator.style.borderColor = 'rgba(59, 130, 246, 0.5)';
             indicator.style.background = 'rgba(59, 130, 246, 0.1)';
             indicator.style.color = '#2563eb';
         } else if (status === 'success') {
-            setTimeout(() => {
-                indicator.querySelector('span').innerHTML = '☁️ 동기화 완료';
-                indicator.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-                indicator.style.background = 'rgba(16, 185, 129, 0.1)';
-                indicator.style.color = '#059669';
-            }, 1000);
+            indicator.querySelector('span').innerHTML = '☁️ 동기화 완료';
+            indicator.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+            indicator.style.background = 'rgba(16, 185, 129, 0.1)';
+            indicator.style.color = '#059669';
+            
+            // Revert to "Sync Enabled" after 3 seconds
+            window.syncStatusTimeout = setTimeout(() => {
+                indicator.querySelector('span').innerHTML = '☁️ 동기화 켜짐';
+            }, 3000);
         } else if (status === 'error') {
             indicator.querySelector('span').innerHTML = '⚠️ 동기화 오류';
             indicator.style.borderColor = '#fca5a5';

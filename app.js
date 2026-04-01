@@ -64,7 +64,12 @@ window.switchScheduleView = (view) => {
 
 function initDashboard() {
     const hrsDisplay = document.getElementById('current-hours-display');
-    if (hrsDisplay) hrsDisplay.innerText = `${engine.state.settings.dailyHours}시간`;
+    let dashTodayStr = engine.getTodayStr();
+    let displayHrs = engine.state.settings.dailyHours;
+    if (engine.state.settings.dailyOverrides && engine.state.settings.dailyOverrides[dashTodayStr]) {
+        displayHrs = engine.state.settings.dailyOverrides[dashTodayStr];
+    }
+    if (hrsDisplay) hrsDisplay.innerText = `${displayHrs}시간`;
 
     // 전체 및 과목별 진도율 계산
     let totalChapters = 0;
@@ -331,8 +336,9 @@ function initDashboard() {
                         let titlePart = subjInfo.chapter.title;
                         if (titlePart.length > 10) titlePart = titlePart.substring(0, 10) + '...';
                         
-                        return `<div class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}; font-weight: 700;">
+                        return `<div class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
                             <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${subjInfo.subject.name} - ${subjInfo.chapter.title}">${shortName} - ${titlePart}</span>
+                            <button onclick="window.cancelComplete('${ct.id}')" style="background: none; border: none; color: ${color}; cursor: pointer; font-size: 0.8rem; margin-left: 4px; padding: 0 2px;" title="공부 기록 취소">✕</button>
                         </div>`;
                     }).join('');
                 }
@@ -1056,45 +1062,30 @@ window.editHistoryEntry = (id, oldDate) => {
     }
 };
 
-window.editHistoryEntry = (id, oldDate) => {
+window.cancelComplete = (id) => {
     let p = engine.state.progress[id];
     if (!p) return;
     
-    let action = prompt(`[기록 수정 / 취소]\n해당 진도의 완료 날짜를 변경하시려면 원하시는 날짜(YYYY-MM-DD 형식)를 입력해주세요.\n(예: 2026-03-28)\n\n만약 실수로 누르셨거나 공부를 안 하셨다면 '삭제'라고 기재해주세요.`, oldDate);
+    let oldDate = p.completedAt;
+    p.status = 'pending';
+    delete p.completedAt;
+    delete p.ratio;
     
-    if (!action) return;
-    action = action.trim();
-    
-    if (action === '삭제') {
-        p.status = 'pending';
-        delete p.completedAt;
-        
+    // Subtract from dailySpent
+    if (oldDate && engine.state.dailySpent && engine.state.dailySpent[oldDate]) {
         let subInfo = findSubjectOfChapter(id);
-        let eH = 1.5;
         if (subInfo) {
             let mult = engine.state.chapterMultipliers ? (engine.state.chapterMultipliers[id] || 1.0) : 1.0;
-            let dH = subInfo.chapter.weight !== undefined ? (subInfo.chapter.weight * 1.5) : (subInfo.chapter.difficulty ? (subInfo.chapter.difficulty/2) : 1.5);
-            eH = dH * mult;
-        }
-        if (engine.state.dailySpent && engine.state.dailySpent[oldDate]) {
+            let dH = subInfo.chapter.weight !== undefined ? (subInfo.chapter.weight * 1.5) : (subInfo.chapter.difficulty ? (subInfo.chapter.difficulty/1.5) : 1.5);
+            let eH = dH * mult;
             engine.state.dailySpent[oldDate] = Math.max(0, engine.state.dailySpent[oldDate] - eH);
         }
-        
-        engine.saveState();
-        engine.generateSchedule();
-        initDashboard();
-        window.customAlert('해당 진도의 완료 기록이 취소되고 미완료 상태로 복구되었습니다.');
-        return;
     }
     
-    if (/^\d{4}-\d{2}-\d{2}$/.test(action)) {
-        p.completedAt = action;
-        engine.saveState();
-        engine.generateSchedule();
-        initDashboard();
-    } else {
-        alert('올바른 날짜 형식(YYYY-MM-DD)이 아니거나 취소되었습니다.');
-    }
+    engine.saveState();
+    engine.generateSchedule();
+    initDashboard();
+    window.customAlert('✅ 학습 완료 기록이 취소되었습니다.');
 };
 
 window.dragTaskStart = (event, id) => {
