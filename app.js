@@ -1224,7 +1224,6 @@ window.exportData = () => {
     };
     const json = JSON.stringify(data, null, 2);
     
-    // Create a temporary textarea to show and copy
     let modal = document.getElementById('export-modal');
     if (!modal) {
         modal = document.createElement('div');
@@ -1234,15 +1233,41 @@ window.exportData = () => {
     modal.style.cssText = "display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 999999; justify-content: center; align-items: center; padding: 1.5rem; box-sizing: border-box;";
     modal.innerHTML = `
         <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 2rem; background: white; border-radius: 16px;">
-            <h3 style="margin-bottom: 1rem; color: var(--color-primary);">💾 데이터 백업 (복사하기)</h3>
-            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">아래 코드를 전체 복사하여 보관하거나, 동기화하려는 다른 기기(또는 깃허브 주소)의 '데이터 복구' 메뉴에 붙여넣으세요.</p>
-            <textarea id="export-text" style="width: 100%; height: 200px; padding: 1rem; border-radius: 8px; border: 1px solid #cbd5e1; font-family: monospace; font-size: 0.8rem; margin-bottom: 1rem;" readonly>${json}</textarea>
-            <div style="display: flex; gap: 0.5rem;">
-                <button class="btn btn-primary" style="flex: 1;" onclick="document.getElementById('export-text').select(); document.execCommand('copy'); alert('복사되었습니다!')">전체 복사하기</button>
+            <h3 style="margin-bottom: 1rem; color: var(--color-primary);">💾 데이터 백업 (안격 복사/저장)</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">데이터량이 많아 복사가 잘릴 수 있으니 <b>[파일로 저장]</b>을 권장합니다.</p>
+            <textarea id="export-text" style="width: 100%; height: 200px; padding: 1rem; border-radius: 8px; border: 1px solid #cbd5e1; font-family: monospace; font-size: 0.75rem; margin-bottom: 1rem;" readonly></textarea>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-primary" style="flex: 1;" onclick="window.copyExportText()">📋 전체 복사하기</button>
+                    <button class="btn btn-secondary" style="flex: 1; background: #6366f1; color: white; border: none;" onclick="window.downloadBackupFile()">💾 파일로 저장하기</button>
+                </div>
                 <button class="btn btn-secondary" onclick="document.getElementById('export-modal').style.display='none'">닫기</button>
             </div>
         </div>
     `;
+    
+    // innerHTML 대신 value로 직접 할당하여 데이터 잘림/변조 방지
+    document.getElementById('export-text').value = json;
+};
+
+window.copyExportText = () => {
+    const el = document.getElementById('export-text');
+    el.select();
+    document.execCommand('copy');
+    alert('✅ 데이터가 클립보드에 전체 복사되었습니다!');
+};
+
+window.downloadBackupFile = () => {
+    const json = document.getElementById('export-text').value;
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `study_planner_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 };
 
 window.importData = () => {
