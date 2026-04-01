@@ -359,7 +359,7 @@ window.StudyEngine = class {
                         let diffTime = currentDayTs - compTime;
                         let diffDays = Math.round(diffTime / (1000 * 3600 * 24));
                         
-                        if (reviewDays.includes(diffDays) && reviewAdded < 4) {
+                        if (reviewDays.includes(diffDays) && reviewAdded < 4 && effectiveBaseHours > 0.1) {
                             // User request: "스케쥴 목록에도 복습은 젤 밑에 넣어주고"
                             // Apply Feedback AI Multiplier
                             let fb = p && p.feedback ? p.feedback : 'normal';
@@ -367,14 +367,19 @@ window.StudyEngine = class {
                             if (fb === 'hard') fbMult = 1.5;
                             else if (fb === 'easy') fbMult = 0.7;
 
+                            let allocatedReview = reviewTiers[diffDays] * fbMult;
+                            // 목표 시간이 0.5시간일 때 복습 시간이 남은 시간을 초과하지 않도록 조절
+                            if (allocatedReview > effectiveBaseHours) allocatedReview = effectiveBaseHours;
+
                             newSchedule[dateStr].push({ 
                                 subjectId: subjKey, 
                                 chapter: ch, 
-                                allocated: reviewTiers[diffDays] * fbMult,
+                                allocated: allocatedReview,
                                 isReview: true,
                                 reviewDay: diffDays
                             });
                             reviewAdded++;
+                            effectiveBaseHours -= allocatedReview;
                         }
                     }
                 }

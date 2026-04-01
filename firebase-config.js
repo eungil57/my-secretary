@@ -23,7 +23,7 @@ window.firebaseSync = {
         window.firebaseSync.userId = user.uid;
         document.getElementById('auth-status').innerHTML = `
             <div id="sync-indicator" style="padding: 0.5rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #059669; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" title="클릭하여 즉시 강제 동기화 (V4)">
-                <span>☁️ 동기화 켜짐 <strong style="color: #8b5cf6; font-size: 0.8rem; margin-left: 6px; background: #e0e7ff; padding: 1px 4px; border-radius: 4px;">V5</strong></span>
+                <span>☁️ 동기화 켜짐 <strong style="color: #ffffff; font-size: 0.8rem; margin-left: 6px; background: #8b5cf6; padding: 2px 5px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">V6</strong></span>
                 <button id="logout-btn" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:#ef4444; font-weight:700; padding:0;">로그아웃</button>
             </div>
         `;
