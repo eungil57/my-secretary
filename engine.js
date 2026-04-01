@@ -195,8 +195,11 @@ window.StudyEngine = class {
             let dailyHoursLeft = effectiveBaseHours;
             newSchedule[dateStr] = [];
             
+            let subjectsWithDeferredToday = [];
             if (deferredTasks[dateStr]) {
                 for (let dt of deferredTasks[dateStr]) {
+                    if (!subjectsWithDeferredToday.includes(dt.sub)) subjectsWithDeferredToday.push(dt.sub);
+                    
                     let mult = parseFloat(this.state.chapterMultipliers && this.state.chapterMultipliers[dt.chapter.id] ? this.state.chapterMultipliers[dt.chapter.id] : 1.0);
                     let baseH = dt.chapter.weight !== undefined ? (dt.chapter.weight * 1.5) : (HOURS_PER_DIFF[dt.chapter.difficulty] || 2.0);
                     if (dt.sub === 'tax') baseH *= 2.0;
@@ -210,6 +213,25 @@ window.StudyEngine = class {
                     });
                     
                     effectiveBaseHours -= eHours;
+                }
+            }
+            
+            // Move subjects already studied today (via overrides) to back of queue
+            subjectsWithDeferredToday.forEach(s => {
+                let idx = activeQueue.indexOf(s);
+                if (idx > -1) {
+                    activeQueue.splice(idx, 1);
+                    activeQueue.push(s);
+                }
+            });
+
+            // Identify subjects with deferred tasks in the FUTURE relative to this date
+            let subjectsWithFutureDeferred = [];
+            for (let futureDate in deferredTasks) {
+                if (futureDate > dateStr) {
+                    for (let dt of deferredTasks[futureDate]) {
+                        if (!subjectsWithFutureDeferred.includes(dt.sub)) subjectsWithFutureDeferred.push(dt.sub);
+                    }
                 }
             }
 
@@ -226,6 +248,12 @@ window.StudyEngine = class {
             while(activeQueue.length > 0 && todaysSubjects.length < maxSubjectsNum && (todaysSubjects.length + unpicked.length) < allowedAttempts) {
                 let candidate = activeQueue.shift();
                 
+                // USER REQUEST: Don't automatically add next chapters for subjects with today's or future overrides
+                if (subjectsWithDeferredToday.includes(candidate) || subjectsWithFutureDeferred.includes(candidate)) {
+                    unpicked.push(candidate);
+                    continue;
+                }
+
                 let conflict = false;
                 if (effectiveBaseHours < 6.0 && todaysSubjects.length > 0) {
                     if ((candidate === 'accounting' && todaysSubjects.includes('tax')) || 

@@ -34,6 +34,25 @@ class BibleTracker {
 }
 const bibleEngine = new BibleTracker();
 window.bibleEngine = bibleEngine;
+window.bibleWeekOffset = 0;
+window.bibleMonthOffset = 0;
+
+function getMonday(offsetWeeks = 0) {
+    let d = new Date();
+    d.setDate(d.getDate() - (offsetWeeks * 7));
+    let day = d.getDay();
+    let diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    let monday = new Date(d.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+}
+
+function getMonthStart(offsetMonths = 0) {
+    let d = new Date();
+    d.setMonth(d.getMonth() - offsetMonths, 1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
 
 // Initialize local Bible data mapping
 window.bibleTextData = {};
@@ -80,10 +99,6 @@ window.initBibleDashboard = () => {
                 if (readDateStr) {
                     dailyHistory[readDateStr] = (dailyHistory[readDateStr] || 0) + 1;
                 }
-                
-                let readDate = new Date(typeof val === 'string' ? val : 0).getTime();
-                if (nowTimestamp - readDate <= oneWeekMs) weeklyCount++;
-                if (nowTimestamp - readDate <= oneMonthMs) monthlyCount++;
             }
         }
         if (bookReadCount > 0) {
@@ -99,17 +114,20 @@ window.initBibleDashboard = () => {
 
     let readDetailsText = readDetailsList.length > 0 ? readDetailsList.join(', ') : '아직 읽은 말씀이 없습니다.';
     
-    // Generate 7-day graph array
-    let today = new Date();
+    // Weekly Stats Logic (Monday to Sunday)
+    let mon = getMonday(window.bibleWeekOffset);
     let weekDays = [];
     let weekMax = 1;
-    for (let i = 6; i >= 0; i--) {
-        let d = new Date(today);
-        d.setDate(d.getDate() - i);
+    let periodWeeklyTotal = 0;
+    for (let i = 0; i < 7; i++) {
+        let d = new Date(mon);
+        d.setDate(mon.getDate() + i);
         let dtStr = d.toISOString().split('T')[0];
         let cnt = dailyHistory[dtStr] || 0;
         if (cnt > weekMax) weekMax = cnt;
-        weekDays.push({ label: `${d.getMonth()+1}/${d.getDate()}`, count: cnt });
+        periodWeeklyTotal += cnt;
+        let dayNames = ['일','월','화','수','목','금','토'];
+        weekDays.push({ label: `${d.getMonth()+1}/${d.getDate()}(${dayNames[d.getDay()]})`, count: cnt });
     }
     
     let weekBarsHtml = weekDays.map(item => {
@@ -125,15 +143,20 @@ window.initBibleDashboard = () => {
         `;
     }).join('');
 
-    // Generate 30-day graph array
+    // Monthly Stats Logic (1st to Last Day)
+    let monthStart = getMonthStart(window.bibleMonthOffset);
+    let monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+    let monthDaysCount = monthEnd.getDate();
     let monthDays = [];
     let monthMax = 1;
-    for (let i = 29; i >= 0; i--) {
-        let d = new Date(today);
-        d.setDate(d.getDate() - i);
+    let periodMonthlyTotal = 0;
+    for (let i = 0; i < monthDaysCount; i++) {
+        let d = new Date(monthStart);
+        d.setDate(monthStart.getDate() + i);
         let dtStr = d.toISOString().split('T')[0];
         let cnt = dailyHistory[dtStr] || 0;
         if (cnt > monthMax) monthMax = cnt;
+        periodMonthlyTotal += cnt;
         monthDays.push({ date: d, count: cnt });
     }
     
@@ -141,7 +164,7 @@ window.initBibleDashboard = () => {
     let svgHeight = 90;
     
     let points = monthDays.map((md, i) => {
-        let x = (i / 29) * svgWidth;
+        let x = (i / (monthDaysCount - 1)) * svgWidth;
         let y = svgHeight - ((md.count / monthMax) * (svgHeight - 10)); 
         return `${x},${y}`;
     });
@@ -150,18 +173,18 @@ window.initBibleDashboard = () => {
 
     let xLabelsHtml = '';
     monthDays.forEach((md, i) => {
-        if (i % 6 === 0 || i === 29) {
-            let x = (i / 29) * svgWidth;
+        if (i === 0 || i === monthDaysCount - 1 || i % 7 === 0) {
+            let x = (i / (monthDaysCount - 1)) * svgWidth;
             let label = `${md.date.getMonth()+1}/${md.date.getDate()}`;
-            let anchor = i === 29 ? 'end' : (i === 0 ? 'start' : 'middle');
-            let weight = i === 29 ? 'bold' : 'normal';
-            let clr = i === 29 ? '#10b981' : '#94a3b8';
+            let anchor = i === monthDaysCount-1 ? 'end' : (i === 0 ? 'start' : 'middle');
+            let weight = i === monthDaysCount-1 || i === 0 ? 'bold' : 'normal';
+            let clr = '#94a3b8';
             xLabelsHtml += `<text x="${x}" y="${svgHeight + 20}" font-size="12" fill="${clr}" font-weight="${weight}" text-anchor="${anchor}">${label}</text>`;
         }
     });
 
     let monthBarsHtml = `
-        <svg viewBox="-10 -10 ${svgWidth+20} ${svgHeight+35}" style="width: 100%; height: 100%; overflow: visible;">
+        <svg viewBox="-10 -10 ${svgWidth+20} ${svgHeight+35}" style="width: 100%; height: 100%; overflow: visible text-rendering: optimizeLegibility;">
             <defs>
                 <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stop-color="rgba(16, 185, 129, 0.4)" />
@@ -188,13 +211,25 @@ window.initBibleDashboard = () => {
         <!-- Weekly & Monthly Stats -->
         <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
             <div class="glass-panel" style="flex: 1; padding: 1.5rem; border-radius: 16px; border-left: 6px solid #3b82f6; display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-main);">
-                <span style="font-weight: 700; color: var(--text-muted); font-size: 0.95rem;">🔥 최근 7일 (강도) : 총 ${weeklyCount}장</span>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 700; color: var(--text-muted); font-size: 0.95rem;">🔥 ${window.bibleWeekOffset === 0 ? '이번 주' : '지난주 기록'} : 총 ${periodWeeklyTotal}장</span>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-secondary" style="padding: 0.2rem 0.6rem; font-size: 0.8rem;" onclick="window.changeBibleWeekOffset(1)">◀</button>
+                        <button class="btn btn-secondary" style="padding: 0.2rem 0.6rem; font-size: 0.8rem;" onclick="window.changeBibleWeekOffset(-1)" ${window.bibleWeekOffset <= 0 ? 'disabled' : ''}>▶</button>
+                    </div>
+                </div>
                 <div style="display: flex; align-items: flex-end; justify-content: space-between; height: 120px; padding-top: 10px; border-bottom: 1px solid #e2e8f0;">
                     ${weekBarsHtml}
                 </div>
             </div>
             <div class="glass-panel" style="flex: 1; padding: 1.5rem; border-radius: 16px; border-left: 6px solid #10b981; display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-main);">
-                <span style="font-weight: 700; color: var(--text-muted); font-size: 0.95rem;">📈 최근 30일 (추세) : 총 ${monthlyCount}장</span>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 700; color: var(--text-muted); font-size: 0.95rem;">📈 ${monthStart.getFullYear()}년 ${monthStart.getMonth()+1}월 : 총 ${periodMonthlyTotal}장</span>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-secondary" style="padding: 0.2rem 0.6rem; font-size: 0.8rem;" onclick="window.changeBibleMonthOffset(1)">◀</button>
+                        <button class="btn btn-secondary" style="padding: 0.2rem 0.6rem; font-size: 0.8rem;" onclick="window.changeBibleMonthOffset(-1)" ${window.bibleMonthOffset <= 0 ? 'disabled' : ''}>▶</button>
+                    </div>
+                </div>
                 <div style="display: flex; align-items: flex-end; justify-content: space-between; height: 120px; padding-top: 10px; border-bottom: 1px solid #e2e8f0; width: 100%;">
                     ${monthBarsHtml}
                 </div>
@@ -704,4 +739,14 @@ window.deleteSermon = (idx) => {
         bibleEngine.saveState();
         window.initBibleDashboard();
     });
+};
+
+window.changeBibleWeekOffset = (delta) => {
+    window.bibleWeekOffset = Math.max(0, window.bibleWeekOffset + delta);
+    window.initBibleDashboard();
+};
+
+window.changeBibleMonthOffset = (delta) => {
+    window.bibleMonthOffset = Math.max(0, window.bibleMonthOffset + delta);
+    window.initBibleDashboard();
 };
