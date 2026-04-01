@@ -21,7 +21,28 @@ window.firebaseSync = {
     userId: null,
     onLogin: async (user) => {
         window.firebaseSync.userId = user.uid;
-        document.getElementById('auth-status').innerHTML = `<div id="sync-indicator" onclick="window.firebaseSync.manualSync()" style="padding: 0.5rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #059669; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" title="클릭하여 즉시 강제 동기화"><span>☁️ 동기화 켜짐</span><button onclick="event.stopPropagation(); window.firebaseSync.logout()" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:#ef4444; font-weight:700; padding:0;">로그아웃</button></div>`;
+        document.getElementById('auth-status').innerHTML = `
+            <div id="sync-indicator" style="padding: 0.5rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #059669; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" title="클릭하여 즉시 강제 동기화 (V4)">
+                <span>☁️ 동기화 켜짐 <small style="opacity:0.5; font-size:0.6rem;">V4</small></span>
+                <button id="logout-btn" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:#ef4444; font-weight:700; padding:0;">로그아웃</button>
+            </div>
+        `;
+        
+        // 더 확실한 클릭 감지를 위해 이벤트 리스너 직접 연결
+        const indicator = document.getElementById('sync-indicator');
+        if (indicator) {
+            indicator.addEventListener('click', (e) => {
+                if (e.target.id === 'logout-btn') return;
+                window.firebaseSync.manualSync();
+            });
+        }
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                window.firebaseSync.logout();
+            });
+        }
         
         const docRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(docRef);
@@ -61,17 +82,19 @@ window.firebaseSync = {
     // 타임스탬프를 비교하여 더 최신 데이터를 선택합니다. (삭제/취소 반영을 위해)
     smartSync: (local, remote, storageKey) => {
         if (!remote) return local;
-        if (!local || !local.lastUpdated) return remote;
+        if (!local) return remote;
         
         const localTime = local.lastUpdated || 0;
         const remoteTime = remote.lastUpdated || 0;
         
+        // 두 데이터 모두 타임스탬프가 없는 초기 상태라면 로컬을 우선시 (소실 방지)
+        if (localTime === 0 && remoteTime === 0) return local;
+        
         if (remoteTime > localTime) {
-            console.log(`[${storageKey}] Cloud data is newer. Syncing from cloud...`);
-            return remote; // 클라우드가 최신이면 덮어씌움 (취소/삭제 반영)
+            console.log(`[${storageKey}] Cloud data is newer (${remoteTime} > ${localTime}). Syncing from cloud...`);
+            return remote;
         } else {
-            console.log(`[${storageKey}] Local data is newer. Keeping local...`);
-            // 로컬이 최성이면 로컬 유지 (나중에 uploadAll이 클라우드로 보냄)
+            console.log(`[${storageKey}] Local data is newer/same (${localTime} >= ${remoteTime}). Keeping local...`);
             return local; 
         }
     },
