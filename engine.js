@@ -35,8 +35,8 @@ window.StudyEngine = class {
         if (!this.state.customTasks) this.state.customTasks = [];
     }
 
-    saveState() {
-        this.state.lastUpdated = Date.now();
+    saveState(skipTimestamp = false) {
+        if (!skipTimestamp) this.state.lastUpdated = Date.now();
         localStorage.setItem('study_planner_state', JSON.stringify(this.state));
         if (window.firebaseSync && window.firebaseSync.savePlanner) window.firebaseSync.savePlanner(this.state);
     }

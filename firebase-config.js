@@ -22,8 +22,8 @@ window.firebaseSync = {
     onLogin: async (user) => {
         window.firebaseSync.userId = user.uid;
         document.getElementById('auth-status').innerHTML = `
-            <div id="sync-indicator" style="padding: 0.5rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #059669; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" title="클릭하여 즉시 강제 동기화 (V4)">
-                <span>☁️ 동기화 켜짐 <strong style="color: #ffffff; font-size: 0.8rem; margin-left: 6px; background: #8b5cf6; padding: 2px 5px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">V6</strong></span>
+            <div id="sync-indicator" style="padding: 0.5rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #059669; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" title="클릭하여 즉시 동기화 (V7)">
+                <span>☁️ 동기화 켜짐 <strong style="color: #ffffff; font-size: 0.85rem; margin-left: 6px; background: #8b5cf6; padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">V7</strong></span>
                 <button id="logout-btn" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:#ef4444; font-weight:700; padding:0;">로그아웃</button>
             </div>
         `;
@@ -54,17 +54,17 @@ window.firebaseSync = {
             // Smart Sync for Planner
             if (data.planner) {
                 window.engine.state = window.firebaseSync.smartSync(window.engine.state, data.planner, 'study_planner_state');
-                window.engine.saveState();
+                window.engine.saveState(true); // Don't override cloud timestamp
             }
             // Smart Sync for Bible
             if (data.bible) {
                 window.bibleEngine.state = window.firebaseSync.smartSync(window.bibleEngine.state, data.bible, 'bible_progress_state');
-                window.bibleEngine.saveState();
+                window.bibleEngine.saveState(true); // Don't override cloud timestamp
             }
             // Smart Sync for English
             if (data.english) {
                 window.engEngine.state = window.firebaseSync.smartSync(window.engEngine.state, data.english, 'english_progress_state');
-                window.engEngine.saveState();
+                window.engEngine.saveState(true); // Don't override cloud timestamp
             }
             
             await window.firebaseSync.uploadAll();
@@ -108,7 +108,7 @@ window.firebaseSync = {
             // Force redraw everything
             if (window.initDashboard) window.initDashboard();
             if (window.renderBibleTable) window.renderBibleTable();
-            window.customAlert('☁️ 클라우드에서 최신 데이터를 강제로 불러왔습니다.');
+            // No alert per user request
         } catch (e) {
             console.error("Manual Sync Error:", e);
             window.firebaseSync.setSyncStatus('error');
