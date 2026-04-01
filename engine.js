@@ -38,7 +38,10 @@ window.StudyEngine = class {
     saveState(skipTimestamp = false) {
         if (!skipTimestamp) this.state.lastUpdated = Date.now();
         localStorage.setItem('study_planner_state', JSON.stringify(this.state));
-        if (window.firebaseSync && window.firebaseSync.savePlanner) window.firebaseSync.savePlanner(this.state);
+        // FIX for Sync Loop: Only upload if this is a fresh local change (not a remote sync ack)
+        if (!skipTimestamp && window.firebaseSync && window.firebaseSync.savePlanner) {
+            window.firebaseSync.savePlanner(this.state);
+        }
     }
 
     getTodayStr() {
@@ -258,7 +261,8 @@ window.StudyEngine = class {
                 let conflict = false;
                 // Check against current picks AND deferred tasks for the day
                 let allTodaySubjs = [...todaysSubjects, ...subjectsWithDeferredToday];
-                if (effectiveBaseHours < 10.0 && allTodaySubjs.length > 0) {
+                // User Request: 8.0h threshold for bundling tax/accounting
+                if (effectiveBaseHours < 8.0 && allTodaySubjs.length > 0) {
                     if ((candidate === 'accounting' && allTodaySubjs.includes('tax')) || 
                         (candidate === 'tax' && allTodaySubjs.includes('accounting'))) {
                         conflict = true;
