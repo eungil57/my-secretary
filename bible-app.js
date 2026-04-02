@@ -174,7 +174,8 @@ window.initBibleDashboard = () => {
 
     let xLabelsHtml = '';
     monthDays.forEach((md, i) => {
-        if (i === 0 || i === monthDaysCount - 1 || i % 7 === 0) {
+        // Show label if it's the first day, last day, or every 7 days (provided it's not too close to the last day)
+        if (i === 0 || i === monthDaysCount - 1 || (i % 7 === 0 && (monthDaysCount - 1 - i) > 3)) {
             let x = (i / (monthDaysCount - 1)) * svgWidth;
             let label = `${md.date.getMonth()+1}/${md.date.getDate()}`;
             let anchor = i === monthDaysCount-1 ? 'end' : (i === 0 ? 'start' : 'middle');
