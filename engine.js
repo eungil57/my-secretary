@@ -344,7 +344,8 @@ window.StudyEngine = class {
                     if (compTime) {
                         let overrideDate = this.state.settings.taskDateOverrides && this.state.settings.taskDateOverrides[ch.id];
                         if (overrideDate) {
-                            if (dateStr === overrideDate && reviewAdded < 8) {
+                            // FIX: Only show if it hasn't been completed ON THIS SPECIFIC DATE already
+                            if (dateStr === overrideDate && p.completedAt !== dateStr && reviewAdded < 8) {
                                 let fb = p && p.feedback ? p.feedback : 'normal';
                                 let fbMult = 1.0;
                                 if (fb === 'hard') fbMult = 1.5;
@@ -425,6 +426,11 @@ window.StudyEngine = class {
         
         if (this.state.bookmarks && this.state.bookmarks[chapterId]) {
             delete this.state.bookmarks[chapterId];
+        }
+        
+        // FIX: Clear manual scheduling overrides once the task is completed
+        if (this.state.settings.taskDateOverrides && this.state.settings.taskDateOverrides[chapterId]) {
+            delete this.state.settings.taskDateOverrides[chapterId];
         }
         
         if (actualMinutes && !pastDateStr) {
