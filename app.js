@@ -417,9 +417,9 @@ function initDashboard() {
                         let titlePart = t.chapter.title;
                         if (titlePart.length > 10) titlePart = titlePart.substring(0, 10) + '...';
                         
-                        return `<div class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}44; cursor: grab;" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}')">
-                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${prefix}${subj.name} - ${t.chapter.title}">${prefix}${shortName} - ${titlePart}</span>
-                            <span style="flex-shrink:0; margin-left:4px;">${t.allocated.toFixed(1)}h</span>
+                        return `<div class="mini-badge" style="background: ${t.isReview ? '#fee2e2' : color + '22'}; color: ${t.isReview ? '#ef4444' : color}; border: 1px solid ${t.isReview ? '#fecaca' : color + '44'}; cursor: grab; font-weight: ${t.isReview ? '800' : '600'};" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}')">
+                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: ${t.isReview ? '0.82rem' : '0.85rem'};" title="${prefix}${subj.name} - ${t.chapter.title}">${prefix}${shortName} - ${titlePart}</span>
+                            <span style="flex-shrink:0; margin-left:4px; opacity: 0.8;">${t.allocated.toFixed(1)}h</span>
                         </div>`;
                     }).join('');
                 }

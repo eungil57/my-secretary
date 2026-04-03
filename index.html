@@ -63,11 +63,11 @@
     <script src="english-data.js?v=18"></script>
     <script src="english-app.js?v=18"></script>
     <!-- Firebase Sync -->
-    <script type="module" src="firebase-config.js?v=18"></script>
+    <script type="module" src="firebase-config.js?v=19"></script>
 </head>
 <body>
-    <!-- Version Fixer (v17) -->
-    <div style="position:fixed; top:2px; right:2px; font-size:10px; color:#94a3b8; background:rgba(255,255,255,0.7); padding:2px 6px; border-radius:4px; z-index:10000; pointer-events:none;">v17.2</div>
+    <!-- Version Fixer (v20) -->
+    <div style="position:fixed; top:2px; right:2px; font-size:10px; color:#94a3b8; background:rgba(255,255,255,0.7); padding:2px 6px; border-radius:4px; z-index:10000; pointer-events:none;">v20.0</div>
     
     <div id="app">
         <!-- Sidebar Navigation -->
@@ -111,6 +111,9 @@
                     📥 <span>데이터 복구 (가져오기)</span>
                 </a>
                 
+                <a href="#" class="nav-item" onclick="window.runScheduleDiagnostic()" style="color: #f59e0b; font-weight: 700; margin-top: 1rem;">
+                    🔧 <span>시스템 진단 (Debug)</span>
+                </a>
                 <a href="#" class="nav-item" onclick="window.appReset()" style="color: var(--color-danger); margin-top: auto;">
                     ⚠️ <span>스터디 플래너 초기화</span>
                 </a>
