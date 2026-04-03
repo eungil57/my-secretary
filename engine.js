@@ -329,14 +329,29 @@ window.StudyEngine = class {
             let reviewReservedTime = 0;
             let availableReviewsToday = [];
             if (baseHours >= 3.0) {
-                // Pre-identify relevant reviews for today's subjects to reserve exact time
-                let scheduledSubjs = [...todaysSubjects, ...subjectsWithDeferredToday];
-                if (scheduledSubjs.length > 0) {
+                // ELIGIBILITY: All subjects that have any progress are eligible for reviews.
+                // But prioritize subjects that are also in 'todaysSubjects' (progressing today).
+                let eligibleSubjs = Object.keys(window.subjectData).filter(s => {
+                    let hasProgress = Object.keys(this.state.progress).some(chId => {
+                        let chObj = findSubjectOfChapter(chId);
+                        return chObj && chObj.subjKey === s && this.state.progress[chId].status === 'completed';
+                    });
+                    return hasProgress;
+                });
+
+                if (eligibleSubjs.length > 0) {
                     const reviewTiers = { 1: 0.5, 7: 0.3, 14: 0.2, 30: 0.1 };
                     const reviewDays = Object.keys(reviewTiers).map(Number);
                     let currentDayTs = new Date(dateStr).getTime();
                     
-                    for (let subjKey of scheduledSubjs) {
+                    // Prioritize reviews for subjects we are actually studying progress for today
+                    eligibleSubjs.sort((a, b) => {
+                        let aInToday = todaysSubjects.includes(a) ? 1 : 0;
+                        let bInToday = todaysSubjects.includes(b) ? 1 : 0;
+                        return bInToday - aInToday;
+                    });
+                    
+                    for (let subjKey of eligibleSubjs) {
                         let subj = window.subjectData[subjKey];
                         if (!subj) continue;
                         for (let ch of subj.chapters) {
@@ -352,12 +367,20 @@ window.StudyEngine = class {
                                 let diffTime = currentDayTs - compTime;
                                 let diffDays = Math.round(diffTime / (1000 * 3600 * 24));
                                 let overrides = this.state.settings.taskDateOverrides || {};
-                                if (reviewDays.includes(diffDays) || overrides[ch.id] === dateStr) {
+                                
+                                // SMART ROLL-OVER: Trigger if exactly on target, OR if target was missed recently (< 3 days window)
+                                let isDue = reviewDays.some(d => diffDays === d || (diffDays > d && diffDays < d + 3));
+                                if (isDue || overrides[ch.id] === dateStr) {
                                     let fb = p && p.feedback ? p.feedback : 'normal';
                                     let fbMult = (fb === 'hard' ? 1.5 : (fb === 'easy' ? 0.7 : 1.0));
-                                    let dur = (reviewTiers[diffDays] || 0.5) * fbMult;
+                                    
+                                    // Find the correctly matched tier for duration and label
+                                    let revDaysRev = [...reviewDays].reverse();
+                                    let matchedTier = revDaysRev.find(d => diffDays >= d) || 1;
+                                    
+                                    let dur = (reviewTiers[matchedTier] || 0.5) * fbMult;
                                     reviewReservedTime += dur;
-                                    availableReviewsToday.push({ subjKey, ch, dur, diffDays: (reviewTiers[diffDays] ? diffDays : '지정') });
+                                    availableReviewsToday.push({ subjKey, ch, dur, diffDays: (overrides[ch.id] === dateStr ? '지정' : matchedTier) });
                                     if (availableReviewsToday.length >= 6) break; // Limit reviews per day
                                 }
                             }
