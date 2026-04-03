@@ -367,6 +367,13 @@ window.StudyEngine = class {
                         let diffDays = Math.round(diffTime / (1000 * 3600 * 24));
                         
                         if (reviewDays.includes(diffDays) && reviewAdded < 4 && effectiveBaseHours > 0.1) {
+                            // NEW: Synchronized Review Filter
+                            // Only show reviews for subjects that have new progress (or deferred tasks) scheduled for TODAY
+                            let scheduledSubjs = [...todaysSubjects, ...subjectsWithDeferredToday];
+                            if (scheduledSubjs.length > 0 && !scheduledSubjs.includes(subjKey)) {
+                                continue; 
+                            }
+
                             // EXTRA FIX: Prevent tax/accounting conflict in reviews too
                             let allTday = [...todaysSubjects, ...subjectsWithDeferredToday, ...newSchedule[dateStr].map(t => t.subjectId)];
                             if (effectiveBaseHours < 10.0) {
@@ -468,6 +475,14 @@ window.StudyEngine = class {
     skipDay(dateStr) {
         if (!this.state.skippedDays.includes(dateStr)) {
             this.state.skippedDays.push(dateStr);
+            this.saveState();
+            this.generateSchedule();
+        }
+    }
+
+    removeCompletion(chapterId) {
+        if (this.state.progress[chapterId]) {
+            delete this.state.progress[chapterId];
             this.saveState();
             this.generateSchedule();
         }

@@ -2,6 +2,7 @@ const engine = new window.StudyEngine();
 window.engine = engine;
 
 window.currentScheduleView = 'daily';
+window.currentViewDate = new Date(); // To track navigation in History view
 
 document.addEventListener('DOMContentLoaded', () => {
     const today = new Date();
@@ -54,6 +55,9 @@ window.switchTab = (tabId) => {
 
 window.switchScheduleView = (view) => {
     window.currentScheduleView = view;
+    if (view === 'history' || view === 'monthly') {
+        window.currentViewDate = new Date(); // Reset to today/current month when entering
+    }
     document.getElementById('btn-daily').classList.toggle('active-view', view === 'daily');
     document.getElementById('btn-weekly').classList.toggle('active-view', view === 'weekly');
     document.getElementById('btn-monthly').classList.toggle('active-view', view === 'monthly');
@@ -129,7 +133,7 @@ function initDashboard() {
         let diff = currentDate.getDate() - day + (day === 0 ? -6 : 1); 
         currentDate.setDate(diff);
     } else if (viewType === 'monthly' || viewType === 'history') {
-        currentDate.setDate(1);
+        currentDate = new Date(window.currentViewDate.getFullYear(), window.currentViewDate.getMonth(), 1);
         let nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
         nextMonth.setDate(nextMonth.getDate() - 1);
         daysToRender = nextMonth.getDate();
@@ -306,6 +310,19 @@ function initDashboard() {
             `;
         }
     } else {
+        if (viewType === 'history' || viewType === 'monthly') {
+            let monthTitle = window.currentViewDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
+            html += `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <button class="btn btn-secondary" onclick="window.historyPrevMonth()">◀ 이전 달</button>
+                        <h2 style="margin: 0; min-width: 120px; text-align: center;">${monthTitle}</h2>
+                        <button class="btn btn-secondary" onclick="window.historyNextMonth()">다음 달 ▶</button>
+                    </div>
+                    ${viewType === 'history' ? `<button class="btn btn-primary" style="background: #6366f1; color: white;" onclick="window.openFullProgressModal()">📋 전체 진도 확인/수정</button>` : ''}
+                </div>
+            `;
+        }
         html += `<div class="${(daysToRender === 7) ? 'weekly-grid' : 'monthly-grid'}">`;
         for (let i = 0; i < daysToRender; i++) {
             let y = currentDate.getFullYear();
@@ -1319,5 +1336,83 @@ window.submitImport = () => {
     } catch (e) {
         console.error("JSON Parse Error:", e);
         alert('❌ 올바르지 않은 데이터 형식입니다. 복사한 내용이 전체인지 다시 확인해 주세요.\n(오류 메시지: ' + e.message + ')');
+    }
+};
+
+window.historyPrevMonth = () => {
+    window.currentViewDate.setMonth(window.currentViewDate.getMonth() - 1);
+    initDashboard();
+};
+
+window.historyNextMonth = () => {
+    window.currentViewDate.setMonth(window.currentViewDate.getMonth() + 1);
+    initDashboard();
+};
+
+window.openFullProgressModal = () => {
+    let modal = document.getElementById('full-progress-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'full-progress-modal';
+        document.body.appendChild(modal);
+    }
+    modal.style.cssText = "display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2147483647; justify-content: center; align-items: center; padding: 1.5rem; box-sizing: border-box;";
+    
+    let contentHtml = '';
+    let subjects = ['tax', 'accounting', 'cost_accounting', 'finance'];
+    
+    subjects.forEach(sKey => {
+        let subj = window.subjectData[sKey];
+        let color = getPastelColor(sKey);
+        contentHtml += `
+            <div style="margin-bottom: 2rem;">
+                <h3 style="color: ${color}; border-bottom: 2px solid ${color}44; padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    ${subj.icon} ${subj.name}
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.5rem; margin-top: 1rem;">
+        `;
+        
+        subj.chapters.forEach(ch => {
+            let isComp = engine.isCompleted(ch.id);
+            contentHtml += `
+                <label style="display: flex; align-items: flex-start; gap: 0.8rem; padding: 0.8rem; border-radius: 8px; background: rgba(0,0,0,0.03); cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.06)'" onmouseout="this.style.background='rgba(0,0,0,0.03)'">
+                    <input type="checkbox" ${isComp ? 'checked' : ''} onchange="window.toggleChapterCompletion('${ch.id}', this.checked)" style="width: 20px; height: 20px; accent-color: ${color}; margin-top: 2px;">
+                    <span style="font-size: 0.95rem; line-height: 1.4; color: ${isComp ? 'var(--text-main)' : 'var(--text-muted)'}; font-weight: ${isComp ? '700' : '400'}">
+                        ${ch.title}
+                    </span>
+                </label>
+            `;
+        });
+        
+        contentHtml += `</div></div>`;
+    });
+
+    modal.innerHTML = `
+        <div style="width: 100%; max-width: 900px; max-height: 85vh; display: flex; flex-direction: column; background: var(--bg-main); border-radius: 20px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.5);">
+            <div style="padding: 1.5rem 2rem; border-bottom: 1px solid rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; background: white;">
+                <div>
+                    <h3 style="margin: 0; color: var(--text-main);">📋 전체 진도 확인 및 직접 수정</h3>
+                    <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">체크박스를 선택/해제하면 즉시 진도 기록이 반영됩니다.</p>
+                </div>
+                <button class="btn btn-secondary" onclick="document.getElementById('full-progress-modal').style.display='none'; initDashboard();">✕ 닫기</button>
+            </div>
+            <div style="padding: 2rem; overflow-y: auto; background: var(--glass-bg); flex: 1;">
+                ${contentHtml}
+            </div>
+            <div style="padding: 1.2rem 2rem; background: white; text-align: right; border-top: 1px solid rgba(0,0,0,0.1);">
+                <button class="btn btn-primary" onclick="document.getElementById('full-progress-modal').style.display='none'; initDashboard();">적용 완료</button>
+            </div>
+        </div>
+    `;
+    modal.style.display = 'flex';
+};
+
+window.toggleChapterCompletion = (chapterId, isChecked) => {
+    if (isChecked) {
+        // Find chapter info to get ID correctly (it might be numeric)
+        let idToMark = isNaN(parseInt(chapterId)) ? chapterId : parseInt(chapterId);
+        engine.markCompleted(idToMark, null, null, 'normal');
+    } else {
+        engine.removeCompletion(chapterId);
     }
 };
