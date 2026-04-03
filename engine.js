@@ -474,10 +474,10 @@ window.StudyEngine = class {
                 }
             }
 
-            // User request: Sort newSchedule so REVIEWS (isReview: true) are on TOP
+            // User request: Sort newSchedule so PROGRESS (isReview: false) is on TOP
             newSchedule[dateStr].sort((a, b) => {
                 if (a.isReview === b.isReview) return 0;
-                return a.isReview ? -1 : 1; 
+                return a.isReview ? 1 : -1; 
             });
 
             currentDate.setDate(currentDate.getDate() + 1);

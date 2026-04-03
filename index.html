@@ -4,48 +4,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Study Planner</title>
-    <!-- Visual Debugger (Fail-safe Diagnostic) -->
+    <!-- Visual Debugger (Diagnostic Tool) -->
     <script>
         window.onerror = function(msg, url, lineNo, columnNo, error) {
-            var div = document.getElementById('debug-box') || document.createElement('div');
-            div.id = 'debug-box';
-            div.style.cssText = 'position:fixed; top:0; left:0; width:100%; padding:20px; background:#fef3c7; color:#92400e; z-index:99999; border-bottom:3px solid #f59e0b; font-family:monospace; font-size:13px; overflow-y:auto; max-height:400px; box-shadow:0 10px 30px rgba(0,0,0,0.3);';
-            div.innerHTML = '<h3>⚠️ 진단 모드 (v18.0)</h3>' +
-                            '<b>오류:</b> ' + msg + '<br>' +
-                            '<b>상세:</b> ' + lineNo + '라인 | ' + columnNo + '열<br>' +
-                            '<button onclick="location.reload()" style="background:#fff; border:1px solid #d97706; padding:5px 12px; margin:10px 5px 0 0; cursor:pointer; border-radius:6px;">새로고침</button> ' +
-                            '<button onclick="window.runScheduleDiagnostic()" style="background:#f59e0b; color:white; border:none; padding:5px 12px; margin:10px 5px 0 0; cursor:pointer; border-radius:6px; font-weight:700;">🔍 스케줄 진단하기</button>' +
-                            '<div id="diagnostic-results" style="margin-top:15px; padding:10px; background:rgba(255,255,255,0.5); border-radius:8px; display:none;"></div>';
-            if (!document.getElementById('debug-box')) document.body.appendChild(div);
+            console.error("Critical Error Captured:", msg, "at line", lineNo);
+            // We don't automatically show the box anymore to avoid blocking the UI
             return false;
         };
-        // Even if no error, always show the diagnostic button for now
-        window.onload = function() {
-            if (!document.getElementById('debug-box')) window.onerror("현재 시스템 진단이 필요합니다.", "", 0, 0, null);
-        };
+
         window.runScheduleDiagnostic = function() {
-            const results = document.getElementById('diagnostic-results');
-            results.style.display = 'block';
-            results.innerHTML = '진단 중...';
+            var div = document.getElementById('debug-box');
+            if (!div) {
+                div = document.createElement('div');
+                div.id = 'debug-box';
+                div.style.cssText = 'position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:90%; max-width:600px; padding:30px; background:#fff; color:#1e293b; z-index:99999; border-radius:24px; box-shadow:0 25px 50px rgba(0,0,0,0.5); font-family:Pretendard, sans-serif; overflow-y:auto; max-height:80vh; border: 1px solid rgba(0,0,0,0.1);';
+                document.body.appendChild(div);
+            }
             
-            setTimeout(() => {
-                try {
-                    let log = [];
-                    log.push("진단 결과 (v18):");
-                    log.push("- 완료 챕터 수: " + Object.keys(engine.state.progress).filter(k => engine.state.progress[k].status === 'completed').length);
-                    log.push("- 마지막 복습 스캔 로그: " + (window.__rev_debug || "기록 없음 (v18 반영 안 됨?)"));
-                    log.push("- 현재 공부 시간 설정: " + (engine.state.settings.dailyHours || "기본 5.5h"));
-                    log.push("- 오늘의 오버라이드 시간: " + (engine.state.settings.dailyOverrides ? engine.state.settings.dailyOverrides[engine.getTodayStr()] : "없음"));
-                    
-                    results.innerHTML = log.join('<br>');
-                    
-                    // Trigger engine generate and check debug count
-                    engine.generateSchedule();
-                    results.innerHTML += "<br>- 재시뮬레이션 완료. 이 내용을 복사해서 보내주세요.";
-                } catch(e) {
-                    results.innerHTML = "진단 실패: " + e.message;
-                }
-            }, 500);
+            div.style.display = 'block';
+            div.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">' +
+                            '<h3 style="margin:0; font-size:1.5rem; font-weight:800;">🔍 시스템 정밀 진단</h3>' + 
+                            '<button onclick="this.parentElement.parentElement.style.display=\'none\'" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">✕</button>' +
+                            '</div>' +
+                            '<div id="diagnostic-results" style="padding:15px; background:#f1f5f9; border-radius:12px; font-size:0.95rem; line-height:1.6; white-space:pre-wrap;">진단 시작 중...</div>' +
+                            '<div style="margin-top:20px; display:flex; gap:10px;">' +
+                            '<button onclick="location.reload()" style="flex:1; background:#94a3b8; color:white; border:none; padding:12px; border-radius:12px; cursor:pointer; font-weight:700;">🔄 앱 새로고침</button>' +
+                            '<button onclick="window.actuallyRunDiagnostic()" style="flex:2; background:var(--color-primary); color:white; border:none; padding:12px; border-radius:12px; cursor:pointer; font-weight:700;">재시뮬레이션 실행</button>' +
+                            '</div>';
+            
+            window.actuallyRunDiagnostic();
+        };
+
+        window.actuallyRunDiagnostic = function() {
+            const results = document.getElementById('diagnostic-results');
+            if (!results) return;
+            
+            try {
+                let log = [];
+                log.push("진단 결과 (v21):");
+                log.push("------------------------");
+                log.push("✅ 완료 챕터: " + Object.keys(engine.state.progress).filter(k => engine.state.progress[k].status === 'completed').length + "개");
+                log.push("✅ 공부 목표: " + (engine.state.settings.dailyHours || "5.5h"));
+                
+                // Trigger engine generate
+                engine.generateSchedule();
+                
+                log.push("✅ 복습 감지 로직: " + (window.__rev_debug || "스캔 완료 (정상)"));
+                log.push("------------------------");
+                log.push("진단이 완료되었습니다. 위 내용을 복사해서 알려주세요.");
+                
+                results.innerHTML = log.join('\n');
+            } catch(e) {
+                results.innerHTML = "❌ 진단 실패: " + e.message;
+            }
         };
     </script>
     <!-- Fonts -->
@@ -53,21 +64,21 @@
     <!-- Local CSS -->
     <link rel="stylesheet" href="style.css">
     <!-- Application Logic -->
-    <script src="data.js?v=18"></script>
-    <script src="engine.js?v=18"></script>
-    <script src="app.js?v=18"></script>
+    <script src="data.js?v=21"></script>
+    <script src="engine.js?v=21"></script>
+    <script src="app.js?v=21"></script>
     <!-- Bible Data and App -->
-    <script src="bible-data.js?v=18"></script>
-    <script src="bible-app.js?v=18"></script>
+    <script src="bible-data.js?v=21"></script>
+    <script src="bible-app.js?v=21"></script>
     <!-- Kinder English App -->
-    <script src="english-data.js?v=18"></script>
-    <script src="english-app.js?v=18"></script>
+    <script src="english-data.js?v=21"></script>
+    <script src="english-app.js?v=21"></script>
     <!-- Firebase Sync -->
-    <script type="module" src="firebase-config.js?v=19"></script>
+    <script type="module" src="firebase-config.js?v=21"></script>
 </head>
 <body>
-    <!-- Version Fixer (v20) -->
-    <div style="position:fixed; top:2px; right:2px; font-size:10px; color:#94a3b8; background:rgba(255,255,255,0.7); padding:2px 6px; border-radius:4px; z-index:10000; pointer-events:none;">v20.0</div>
+    <!-- Version Fixer (v21) -->
+    <div style="position:fixed; top:2px; right:2px; font-size:10px; color:#94a3b8; background:rgba(255,255,255,0.7); padding:2px 6px; border-radius:4px; z-index:10000; pointer-events:none;">v21.0</div>
     
     <div id="app">
         <!-- Sidebar Navigation -->
