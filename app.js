@@ -1,3 +1,6 @@
+// Diagnostic Alert - Step 1: engine.js and data.js must have loaded
+console.log("app.js starting...");
+
 const engine = new window.StudyEngine();
 window.engine = engine;
 
@@ -5,32 +8,37 @@ window.currentScheduleView = 'daily';
 window.currentViewDate = new Date(); // To track navigation in History view
 
 document.addEventListener('DOMContentLoaded', () => {
-    const today = new Date();
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    let dateSubtitle = document.getElementById('date-subtitle');
-    if (dateSubtitle) dateSubtitle.innerText = today.toLocaleDateString('ko-KR', options);
+    try {
+        const today = new Date();
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        let dateSubtitle = document.getElementById('date-subtitle');
+        if (dateSubtitle) dateSubtitle.innerText = today.toLocaleDateString('ko-KR', options);
 
-    initDashboard();
+        initDashboard();
 
-    setTimeout(() => {
-        let script = document.createElement('script');
-        script.src = 'korean-bible-text.js';
-        script.onload = () => {
-            if (window.rawBibleJson && !window.bibleTextData?.gen) {
-                window.bibleTextData = {};
-                let bibleDataIds = ["gen","exo","lev","num","deu","jos","jdg","rut","1sa","2sa","1ki","2ki","1ch","2ch","ezr","neh","est","job","psa","pro","ecc","sng","isa","jer","lam","ezk","dan","hos","jol","amo","oba","jon","mic","nah","hab","zep","hag","zec","mal","mat","mrk","luk","jhn","act","rom","1co","2co","gal","eph","php","col","1th","2th","1ti","2ti","tit","phm","heb","jas","1pe","2pe","1jn","2jn","3jn","jud","rev"];
-                for(let i=0; i<66; i++) {
-                    let bookId = bibleDataIds[i];
-                    window.bibleTextData[bookId] = {};
-                    let chapters = window.rawBibleJson[i]? window.rawBibleJson[i].chapters : [];
-                    for(let c=0; c<chapters.length; c++) {
-                        window.bibleTextData[bookId][c+1] = chapters[c];
+        setTimeout(() => {
+            let script = document.createElement('script');
+            script.src = 'korean-bible-text.js';
+            script.onload = () => {
+                if (window.rawBibleJson && !(window.bibleTextData && window.bibleTextData.gen)) {
+                    window.bibleTextData = {};
+                    let bibleDataIds = ["gen","exo","lev","num","deu","jos","jdg","rut","1sa","2sa","1ki","2ki","1ch","2ch","ezr","neh","est","job","psa","pro","ecc","sng","isa","jer","lam","ezk","dan","hos","jol","amo","oba","jon","mic","nah","hab","zep","hag","zec","mal","mat","mrk","luk","jhn","act","rom","1co","2co","gal","eph","php","col","1th","2th","1ti","2ti","tit","phm","heb","jas","1pe","2pe","1jn","2jn","3jn","jud","rev"];
+                    for(let i=0; i<66; i++) {
+                        let bookId = bibleDataIds[i];
+                        window.bibleTextData[bookId] = {};
+                        let chapters = window.rawBibleJson[i]? window.rawBibleJson[i].chapters : [];
+                        for(let c=0; c<chapters.length; c++) {
+                            window.bibleTextData[bookId][c+1] = chapters[c];
+                        }
                     }
                 }
-            }
-        };
-        document.body.appendChild(script);
-    }, 200);
+            };
+            document.body.appendChild(script);
+        }, 200);
+    } catch (e) {
+        console.error("DOM Initialization Critical Error:", e);
+        alert("앱 초기화 중 오류 발생: " + e.message);
+    }
 });
 
 window.switchTab = (tabId) => {
@@ -67,80 +75,95 @@ window.switchScheduleView = (view) => {
 };
 
 function initDashboard() {
-    const hrsDisplay = document.getElementById('current-hours-display');
-    let dashTodayStr = engine.getTodayStr();
-    let displayHrs = engine.state.settings.dailyHours;
-    if (engine.state.settings.dailyOverrides && engine.state.settings.dailyOverrides[dashTodayStr]) {
-        displayHrs = engine.state.settings.dailyOverrides[dashTodayStr];
-    }
-    if (hrsDisplay) hrsDisplay.innerText = `${displayHrs}시간`;
-
-    // 전체 및 과목별 진도율 계산
-    let totalChapters = 0;
-    let completedChapters = 0;
-    let subjectProgressHtml = '';
-
-    for (let subjKey in window.subjectData) {
-        let subj = window.subjectData[subjKey];
-        let subjTotal = subj.chapters.length;
-        let subjCompleted = 0;
+    try {
+        const hrsDisplay = document.getElementById('current-hours-display');
+        let dEngine = window.engine;
+        if (!dEngine) return;
         
-        for (let ch of subj.chapters) {
-            if (engine.isCompleted(ch.id)) subjCompleted++;
+        let dashTodayStr = dEngine.getTodayStr();
+        let settings = dEngine.state.settings || { dailyHours: 5.5 };
+        let displayHrs = settings.dailyHours;
+        if (settings.dailyOverrides && settings.dailyOverrides[dashTodayStr]) {
+            displayHrs = settings.dailyOverrides[dashTodayStr];
         }
-        
-        totalChapters += subjTotal;
-        completedChapters += subjCompleted;
-        
-        let subjPct = (subjTotal > 0) ? Math.round((subjCompleted / subjTotal) * 100) : 0;
-        let color = getPastelColor(subjKey);
-        let shortName = subj.name.length > 5 ? subj.name.substring(0,4) : subj.name;
-        
-        subjectProgressHtml += `
-            <div class="subject-progress">
-                <span style="width: 50px; color: var(--text-muted);">${shortName}</span>
-                <div class="subject-progress-bar">
-                    <div class="subject-progress-fill" style="width: ${subjPct}%; background: ${color}"></div>
-                </div>
-                <span style="width: 35px; text-align: right; color: ${color}; font-weight: 700;">${subjPct}%</span>
-            </div>
-        `;
-    }
-
-    let progressPct = (totalChapters > 0) ? Math.round((completedChapters / totalChapters) * 100) : 0;
+        if (hrsDisplay) hrsDisplay.innerText = `${displayHrs}시간`;
     
-    let progressFill = document.getElementById('progress-fill');
-    let progressText = document.getElementById('progress-text');
-    if (progressFill && progressText) {
-        progressFill.style.width = progressPct + '%';
-        progressText.innerText = progressPct + '% (' + completedChapters + '/' + totalChapters + '장)';
-    }
-
-    let subjContainer = document.getElementById('subject-progress-container');
-    if (subjContainer) subjContainer.innerHTML = subjectProgressHtml;
-
-    const container = document.getElementById('view-container');
-    const todayStr = engine.getTodayStr();
-    let daysToRender = 1;
-
-    let html = '';
-    let currentDate = new Date(todayStr);
-    let viewType = window.currentScheduleView || 'daily';
-
-    if (viewType === 'weekly') {
-        daysToRender = 7;
-        let day = currentDate.getDay();
-        let diff = currentDate.getDate() - day + (day === 0 ? -6 : 1); 
-        currentDate.setDate(diff);
-    } else if (viewType === 'monthly' || viewType === 'history') {
-        currentDate = new Date(window.currentViewDate.getFullYear(), window.currentViewDate.getMonth(), 1);
-        let nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
-        nextMonth.setDate(nextMonth.getDate() - 1);
-        daysToRender = nextMonth.getDate();
-    }
+        // 전체 및 과목별 진도율 계산
+        let totalChapters = 0;
+        let completedChapters = 0;
+        let subjectProgressHtml = '';
+    
+        if (window.subjectData) {
+            Object.keys(window.subjectData).forEach(subjKey => {
+                let subj = window.subjectData[subjKey];
+                if (!subj || !Array.isArray(subj.chapters)) return;
+                
+                let subjTotal = subj.chapters.length;
+                let subjCompleted = 0;
+                
+                subj.chapters.forEach(ch => {
+                    if (dEngine.isCompleted(ch.id)) subjCompleted++;
+                });
+                
+                totalChapters += subjTotal;
+                completedChapters += subjCompleted;
+                
+                let subjPct = (subjTotal > 0) ? Math.round((subjCompleted / subjTotal) * 100) : 0;
+                let color = getPastelColor(subjKey);
+                let shortName = subj.name.length > 5 ? subj.name.substring(0,4) : subj.name;
+                
+                subjectProgressHtml += `
+                    <div class="subject-progress">
+                        <span style="width: 50px; color: var(--text-muted);">${shortName}</span>
+                        <div class="subject-progress-bar">
+                            <div class="subject-progress-fill" style="width: ${subjPct}%; background: ${color}"></div>
+                        </div>
+                        <span style="width: 35px; text-align: right; color: ${color}; font-weight: 700;">${subjPct}%</span>
+                    </div>
+                `;
+            });
+        }
+    
+        let progressPct = (totalChapters > 0) ? Math.round((completedChapters / totalChapters) * 100) : 0;
+        
+        let progressFill = document.getElementById('progress-fill');
+        let progressText = document.getElementById('progress-text');
+        if (progressFill && progressText) {
+            progressFill.style.width = progressPct + '%';
+            progressText.innerText = progressPct + '% (' + completedChapters + '/' + totalChapters + '장)';
+        }
+    
+        let subjContainer = document.getElementById('subject-progress-container');
+        if (subjContainer) subjContainer.innerHTML = subjectProgressHtml;
+    
+        const container = document.getElementById('view-container');
+        const todayStr = dEngine.getTodayStr();
+        let daysToRender = 1;
+    
+        let html = '';
+        let currentDate = new Date(todayStr);
+        let viewType = window.currentScheduleView || 'daily';
+    
+        if (viewType === 'weekly') {
+            daysToRender = 7;
+            let day = (isNaN(currentDate.getDay())) ? 0 : currentDate.getDay();
+            let diff = currentDate.getDate() - day + (day === 0 ? -6 : 1); 
+            currentDate.setDate(diff);
+        } else if (viewType === 'monthly' || viewType === 'history') {
+            let vDate = window.currentViewDate || new Date();
+            currentDate = new Date(vDate.getFullYear(), vDate.getMonth(), 1);
+            let nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+            nextMonth.setDate(nextMonth.getDate() - 1);
+            daysToRender = nextMonth.getDate();
+        }
 
     if (viewType === 'daily') {
         let tasks = engine.getScheduleForDate(todayStr);
+        let pacingWarningHtml = '';
+        let cardsHtml = '';
+        let skipBtnText = '';
+        let displayDate = '';
+        
         if (tasks.length === 0) {
             html += `
                 <div class="glass-panel" style="padding: 3rem; text-align: center; display: flex; flex-direction: column; align-items: center;">
@@ -153,10 +176,12 @@ function initDashboard() {
                 </div>
             `;
         } else {
-            let cardsHtml = tasks.map(t => {
+            cardsHtml = tasks.map(t => {
                 let color = getPastelColor(t.subjectId);
                 let subj = window.subjectData[t.subjectId];
+                if (!subj || !t.chapter) return '';
                 let prefix = t.isReview ? '[복습] ' : '';
+                let chId = t.chapter.id ? t.chapter.id.toString() : 'unknown';
                 return `
                     <div class="glass-panel" style="padding: 1.2rem; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid ${color}; border-radius: 12px; margin-bottom: 1rem; background: var(--glass-bg);">
                         <div style="display: flex; flex-direction: column; gap: 0.4rem;">
@@ -165,10 +190,10 @@ function initDashboard() {
                             </span>
                             ${(() => {
                                 let bkmk = (engine.state.bookmarks && engine.state.bookmarks[t.chapter.id]) ? `<span style="display: inline-block; margin-top: 0.2rem; background: #fef3c7; color: #d97706; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.85rem; font-weight: 700; border: 1px solid #fde68a; width: fit-content;">📍 이어서: ${engine.state.bookmarks[t.chapter.id]} 부터</span>` : '';
-                                let titleStr = t.chapter.title;
-                                let isCustom = t.chapter.id.toString().startsWith('custom_');
+                                let titleStr = t.chapter.title || '제목 없음';
+                                let isCustom = chId.startsWith('custom_');
                                 let titleHtml = isCustom ? 
-                                    `<span style="cursor:pointer; border-bottom:1px dashed var(--text-muted);" onclick="window.editCustomTaskTitle('${t.chapter.id}')" title="클릭하여 스케줄 제목 수정">✏️ ${titleStr}</span>` : 
+                                    `<span style="cursor:pointer; border-bottom:1px dashed var(--text-muted);" onclick="window.editCustomTaskTitle('${chId}')" title="클릭하여 스케줄 제목 수정">✏️ ${titleStr}</span>` : 
                                     titleStr;
                                 return `<span style="font-weight: 700; font-size: 1.05rem; color: var(--text-main); display: flex; flex-direction: column; gap: 0.3rem;">${prefix}${titleHtml} ${bkmk}</span>`;
                             })()}
@@ -176,22 +201,22 @@ function initDashboard() {
                         <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.6rem;">
                             <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">⏰ ${t.allocated.toFixed(1)}시간</span>
                             <div style="display: flex; gap: 0.5rem;">
-                                <button class="btn btn-primary" style="background: ${color}; color: #1e293b; padding: 0.5rem 1rem;" onclick="window.appComplete('${t.chapter.id}', ${t.allocated}, ${t.isReview ? 'true' : 'false'})">✅ 완료</button>
-                                <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="window.appPartial('${t.chapter.id}', ${t.allocated})">⏳ 진행중</button>
+                                <button class="btn btn-primary" style="background: ${color}; color: #1e293b; padding: 0.5rem 1rem;" onclick="window.appComplete('${chId}', ${t.allocated}, ${t.isReview ? 'true' : 'false'})">✅ 완료</button>
+                                <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="window.appPartial('${chId}', ${t.allocated})">⏳ 진행중</button>
                             </div>
                         </div>
                     </div>
                 `;
             }).join('');
 
-            let todayStr = engine.getTodayStr();
-            let isOptedInDay = engine.state.settings.extraStudyDays && engine.state.settings.extraStudyDays.includes(todayStr);
-            let skipBtnText = isOptedInDay ? '☕ 오늘 수동 추가했던 일정 취소 (휴무로 복귀)' : '⏭️ 오늘 전체 건너뛰기';
+            let todayStrLocal = engine.getTodayStr();
+            let isOptedInDay = engine.state.settings.extraStudyDays && engine.state.settings.extraStudyDays.includes(todayStrLocal);
+            skipBtnText = isOptedInDay ? '☕ 오늘 수동 추가했던 일정 취소 (휴무로 복귀)' : '⏭️ 오늘 전체 건너뛰기';
 
-            let displayDate = new Date(todayStr).toLocaleDateString('ko-KR', {weekday:'long', month:'long', day:'numeric'});
+            displayDate = new Date(todayStrLocal).toLocaleDateString('ko-KR', {weekday:'long', month:'long', day:'numeric'});
             
             // AI Pacing Diagnostic Warning Logic for 5-Rotations/Year (Advanced Adaptive)
-            let pacingWarningHtml = '';
+            pacingWarningHtml = '';
             let totalContentHours = 0;
             const H_DIFF = { 1: 1.0, 2: 1.5, 3: 2.5, 4: 3.5, 5: 4.5 };
             
@@ -215,7 +240,7 @@ function initDashboard() {
             for (let k in engine.state.progress) {
                 let p = engine.state.progress[k];
                 let subInfo = findSubjectOfChapter(k);
-                if (subInfo) {
+                if (subInfo && subInfo.chapter) {
                     let h = subInfo.chapter.weight !== undefined ? (subInfo.chapter.weight * 1.5) : (H_DIFF[subInfo.chapter.difficulty] || 2.0);
                     if (subInfo.subjKey === 'tax') h *= 2.0;
                     if (p.status === 'completed') workDoneHours += h;
@@ -281,7 +306,7 @@ function initDashboard() {
                     }
                 }
 
-                let recommendedFull = (targetTotalHours / expectedStudyDays).toFixed(1);
+                let recommendedFull = (targetTotalWork / 330).toFixed(1);
                 
                 pacingWarningHtml = `
                     <div class="glass-panel" style="margin-bottom: 2rem; padding: 1.5rem; border-left: 6px solid #ef4444; border-radius: 16px; background: rgba(254, 226, 226, 0.5);">
@@ -290,12 +315,12 @@ function initDashboard() {
                             <div style="display: flex; flex-direction: column; gap: 0.8rem; flex: 1;">
                                 <h3 style="color: #b91c1c; margin: 0; font-size: 1.15rem;">[AI 스케줄 긴급 진단] 수험 페이스 상향 권고</h3>
                                 <p style="color: #991b1b; margin: 0; font-size: 0.95rem; line-height: 1.5;">
-                                    현재 일일 <b>${currentDaily}시간</b> 페이스로는 1년 내 합격 최소선인 <b>'전 과목 5회독'</b>(총 ${Math.round(targetTotalHours)}시간 소요 예정) 달성이 시기적으로 어렵습니다. (추세 유지 시 1년 후 약 ${Math.round((currentYearly/targetTotalHours)*100)}% 도달 예상)
+                                    현재 일일 <b>${currentDaily}시간</b> 페이스로는 1년 내 합격 최소선인 <b>'전 과목 5회독'</b>(총 ${Math.round(targetTotalWork)}시간 소요 예정) 달성이 시기적으로 어렵습니다.
                                 </p>
                                 <div style="padding: 0.8rem 1rem; background: rgba(255,255,255,0.7); border-radius: 8px; border: 1px solid #fecaca; margin-top: 0.2rem;">
                                     <p style="color: #b91c1c; margin: 0; font-size: 0.95rem; line-height: 1.6; font-weight: 600;">💡 AI 맞춤형 행동 지침:</p>
                                     <ul style="color: #991b1b; margin: 0.5rem 0 0 0; padding-left: 1.2rem; font-size: 0.9rem; line-height: 1.5;">
-                                        <li>5회독 목표 지표를 지키려면 <b>주당 평균 ${Math.round(targetWeeklyHours)}시간</b>의 거시적 학습이 필수적입니다. 일일 기본 시간을 늘리시거나, 기초 목표치 미달분인 <b>최소 ${neededWeeklyBoost}시간</b>을 이번 주 주말 등 빈 시간에 시급히 추가 배분하십시오.</li>
+                                        <li>5회독 목표 지표를 지키려면 **남은 일수를 감안한** <b>주당 평균 ${Math.round(weeklyPaceNeeded)}시간</b>의 거시적 학습이 필수적입니다. 현재 계획 대비 <b>매주 최소 ${neededWeeklyBoost}시간</b>을 더 확보하십시오.</li>
                                         <li>${targetChaptersText}</li>
                                     </ul>
                                 </div>
@@ -411,7 +436,25 @@ function initDashboard() {
         html += `</div>`;
     }
 
-    container.innerHTML = html;
+        container.innerHTML = html;
+    } catch (err) {
+        console.error("Dashboard initialization failed:", err);
+        const containerFallback = document.getElementById('view-container');
+        if (containerFallback) {
+            containerFallback.innerHTML = `
+                <div class="glass-panel" style="padding: 2.5rem; text-align: center; background: rgba(254, 226, 226, 0.5); border: 2px solid #fecaca; border-radius: 16px;">
+                    <h3 style="color: #b91c1c; margin: 0; font-size: 1.25rem;">⚠️ 대시보드 로딩 중 일시적 오류 발생</h3>
+                    <p style="color: #991b1b; margin: 0.75rem 0 1.5rem 0; font-size: 0.95rem; line-height: 1.5;">
+                        일시적인 설정값 충돌이 감지되었습니다. <b>아래 버튼을 눌러 초기 설정으로 복구</b>하시면 즉시 정상 이용이 가능합니다.
+                    </p>
+                    <div style="display: flex; gap: 0.75rem; justify-content: center;">
+                        <button onclick="location.reload()" class="btn btn-primary" style="background: #ef4444; color: white;">재시도</button>
+                        <button onclick="localStorage.clear(); location.reload();" class="btn btn-secondary">데이터 정화 및 완전 초기화</button>
+                    </div>
+                </div>
+            `;
+        }
+    }
 }
 
 function findSubjectOfChapter(id) {

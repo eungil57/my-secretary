@@ -4,22 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Study Planner</title>
+    <!-- Visual Debugger (Fail-safe) -->
+    <script>
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            var div = document.getElementById('debug-box') || document.createElement('div');
+            div.id = 'debug-box';
+            div.style.cssText = 'position:fixed; top:0; left:0; width:100%; padding:20px; background:#fecaca; color:#991b1b; z-index:99999; border-bottom:3px solid #ef4444; font-family:monospace; font-size:14px; overflow-y:auto; max-height:300px;';
+            div.innerHTML = '<h3>⚠️ 자바스크립트 오류 (화면 캡쳐해서 보내주세요)</h3>' +
+                            '<b>Message:</b> ' + msg + '<br>' +
+                            '<b>Line:</b> ' + lineNo + ' | <b>Col:</b> ' + columnNo + '<br>' +
+                            '<button onclick="location.reload()" style="margin-top:10px; padding:5px 10px; cursor:pointer;">새로고침</button> ' +
+                            '<button onclick="localStorage.clear(); location.reload();" style="margin-top:10px; padding:5px 10px; cursor:pointer;">전체 초기화 (주의)</button>';
+            if (!document.getElementById('debug-box')) document.body.appendChild(div);
+            return false;
+        };
+    </script>
     <!-- Fonts -->
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.6/dist/web/static/pretendard.css" />
     <!-- Local CSS -->
     <link rel="stylesheet" href="style.css">
     <!-- Application Logic -->
-    <script src="data.js?v=14"></script>
-    <script src="engine.js?v=14"></script>
-    <script src="app.js?v=14"></script>
+    <script src="data.js?v=16"></script>
+    <script src="engine.js?v=16"></script>
+    <script src="app.js?v=16"></script>
     <!-- Bible Data and App -->
-    <script src="bible-data.js?v=14"></script>
-    <script src="bible-app.js?v=14"></script>
+    <script src="bible-data.js?v=16"></script>
+    <script src="bible-app.js?v=16"></script>
     <!-- Kinder English App -->
-    <script src="english-data.js?v=14"></script>
-    <script src="english-app.js?v=14"></script>
+    <script src="english-data.js?v=16"></script>
+    <script src="english-app.js?v=16"></script>
     <!-- Firebase Sync -->
-    <script type="module" src="firebase-config.js?v=14"></script>
+    <script type="module" src="firebase-config.js?v=16"></script>
 </head>
 <body>
     <div id="app">

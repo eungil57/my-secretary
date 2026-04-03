@@ -12,27 +12,48 @@ window.StudyEngine = class {
     }
 
     loadState() {
-        const saved = localStorage.getItem('study_planner_state');
-        if (saved) {
-            this.state = JSON.parse(saved);
-            if (this.state.settings.dailyHours === 6.5 || this.state.settings.dailyHours === 5.0) {
-                this.state.settings.dailyHours = 5.5; // 디폴트 루틴 시간으로 재조정
+        try {
+            const saved = localStorage.getItem('study_planner_state');
+            if (saved) {
+                this.state = JSON.parse(saved);
+                if (this.state && this.state.settings) {
+                    if (this.state.settings.dailyHours === 6.5 || this.state.settings.dailyHours === 5.0) {
+                        this.state.settings.dailyHours = 5.5; 
+                    }
+                }
+            } else {
+                this.state = {
+                    settings: {
+                        dailyHours: 5.5, 
+                        startDate: this.getTodayStr(),
+                    },
+                    progress: {},
+                    schedule: {},
+                    skippedDays: [],
+                    dailySpent: {}
+                };
+                this.saveState();
             }
-        } else {
+        } catch (e) {
+            console.error("Local load failed, resetting...", e);
             this.state = {
-                settings: {
-                    dailyHours: 5.5, // Default changed to 5.5 (10시~17시, 점심제외)
-                    startDate: this.getTodayStr(),
-                },
+                settings: { dailyHours: 5.5, startDate: this.getTodayStr() },
                 progress: {},
                 schedule: {},
                 skippedDays: [],
                 dailySpent: {}
             };
-            this.saveState();
         }
+        
+        // Ensure sub-objects exist
+        if (!this.state) this.state = {};
+        if (!this.state.settings) this.state.settings = { dailyHours: 5.5, startDate: this.getTodayStr() };
+        if (!this.state.progress) this.state.progress = {};
+        if (!this.state.schedule) this.state.schedule = {};
+        if (!this.state.skippedDays) this.state.skippedDays = [];
         if (!this.state.dailySpent) this.state.dailySpent = {};
         if (!this.state.customTasks) this.state.customTasks = [];
+        if (!this.state.bookmarks) this.state.bookmarks = {};
     }
 
     saveState(skipTimestamp = false) {
@@ -96,8 +117,9 @@ window.StudyEngine = class {
     }
 
     generateSchedule() {
-        this.checkDelays();
-        let currentDate = new Date(this.state.settings.startDate);
+        try {
+            this.checkDelays();
+            let currentDate = new Date(this.state.settings.startDate);
         const today = new Date(this.getTodayStr());
         if (currentDate < today) currentDate = today;
 
@@ -144,7 +166,7 @@ window.StudyEngine = class {
         for (let sub in pending) {
             let regular = [];
             for (let ch of pending[sub]) {
-                let overrideDate = this.state.settings.taskDateOverrides && this.state.settings.taskDateOverrides[ch.id];
+                let overrideDate = (this.state.settings.taskDateOverrides || {})[ch.id];
                 if (overrideDate) {
                     if (!deferredTasks[overrideDate]) deferredTasks[overrideDate] = [];
                     deferredTasks[overrideDate].push({ sub, chapter: ch });
@@ -206,7 +228,8 @@ window.StudyEngine = class {
                 for (let dt of deferredTasks[dateStr]) {
                     if (!subjectsWithDeferredToday.includes(dt.sub)) subjectsWithDeferredToday.push(dt.sub);
                     
-                    let mult = parseFloat(this.state.chapterMultipliers && this.state.chapterMultipliers[dt.chapter.id] ? this.state.chapterMultipliers[dt.chapter.id] : 1.0);
+                    let multipliers = this.state.chapterMultipliers || {};
+                    let mult = parseFloat(multipliers[dt.chapter.id] || 1.0);
                     let baseH = dt.chapter.weight !== undefined ? (dt.chapter.weight * 1.5) : (HOURS_PER_DIFF[dt.chapter.difficulty] || 2.0);
                     if (dt.sub === 'tax') baseH *= 2.0;
                     let eHours = baseH * mult; 
@@ -291,10 +314,16 @@ window.StudyEngine = class {
             let totalWeight = todaysSubjects.reduce((sum, s) => sum + (subjectWeights[s] || 1.0), 0);
             
             let subjectBuckets = {};
-            todaysSubjects.forEach(s => {
-                let w = subjectWeights[s] || 1.0;
-                subjectBuckets[s] = effectiveBaseHours * (w / totalWeight);
-            });
+            if (totalWeight > 0) {
+                todaysSubjects.forEach(s => {
+                    let w = subjectWeights[s] || 1.0;
+                    subjectBuckets[s] = effectiveBaseHours * (w / totalWeight);
+                });
+            } else {
+                todaysSubjects.forEach(s => {
+                    subjectBuckets[s] = 0;
+                });
+            }
             
             // USER REQUEST: Only show reviews if studying 3+ hours today
             let reviewReservedTime = 0;
@@ -322,7 +351,8 @@ window.StudyEngine = class {
                             if (compTime) {
                                 let diffTime = currentDayTs - compTime;
                                 let diffDays = Math.round(diffTime / (1000 * 3600 * 24));
-                                if (reviewDays.includes(diffDays) || (this.state.settings.taskDateOverrides && this.state.settings.taskDateOverrides[ch.id] === dateStr)) {
+                                let overrides = this.state.settings.taskDateOverrides || {};
+                                if (reviewDays.includes(diffDays) || overrides[ch.id] === dateStr) {
                                     let fb = p && p.feedback ? p.feedback : 'normal';
                                     let fbMult = (fb === 'hard' ? 1.5 : (fb === 'easy' ? 0.7 : 1.0));
                                     let dur = (reviewTiers[diffDays] || 0.5) * fbMult;
@@ -351,7 +381,8 @@ window.StudyEngine = class {
                     let chapter = pending[sub][0]; // Peek first
                     
                     // AI Adaptive Pace Learning Multiplier
-                    let mult = parseFloat(this.state.chapterMultipliers && this.state.chapterMultipliers[chapter.id] ? this.state.chapterMultipliers[chapter.id] : 1.0);
+                    let multipliers = this.state.chapterMultipliers || {};
+                    let mult = parseFloat(multipliers[chapter.id] || 1.0);
                     let baseH = chapter.weight !== undefined ? (chapter.weight * 1.5) : (HOURS_PER_DIFF[chapter.difficulty] || 2.0);
                     if (sub === 'tax') baseH *= 2.0;
 
@@ -421,6 +452,10 @@ window.StudyEngine = class {
 
         this.state.schedule = newSchedule;
         this.saveState(true); 
+      } catch (e) {
+        console.error("Scheduling loop failed:", e);
+        if (!this.state.schedule) this.state.schedule = {};
+      }
     }
 
     getScheduleForDate(dateStr) {
