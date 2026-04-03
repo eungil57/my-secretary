@@ -313,13 +313,13 @@ function initDashboard() {
         if (viewType === 'history' || viewType === 'monthly') {
             let monthTitle = window.currentViewDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
             html += `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <button class="btn btn-secondary" onclick="window.historyPrevMonth()">◀ 이전 달</button>
-                        <h2 style="margin: 0; min-width: 120px; text-align: center;">${monthTitle}</h2>
-                        <button class="btn btn-secondary" onclick="window.historyNextMonth()">다음 달 ▶</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1.5rem;">
+                    <div class="history-nav-container">
+                        <button class="history-nav-btn" onclick="window.historyPrevMonth()" title="이전 달">❮</button>
+                        <h2 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.02em;">${monthTitle}</h2>
+                        <button class="history-nav-btn" onclick="window.historyNextMonth()" title="다음 달">❯</button>
                     </div>
-                    ${viewType === 'history' ? `<button class="btn btn-primary" style="background: #6366f1; color: white;" onclick="window.openFullProgressModal()">📋 전체 진도 확인/수정</button>` : ''}
+                    ${viewType === 'history' ? `<button class="btn btn-primary" style="background: var(--color-primary); color: white; padding: 0.9rem 1.8rem; border-radius: 14px; box-shadow: 0 10px 25px var(--color-primary-glow);" onclick="window.openFullProgressModal()">📋 전체 진도 확인/수정</button>` : ''}
                 </div>
             `;
         }
@@ -1374,12 +1374,23 @@ window.openFullProgressModal = () => {
         
         subj.chapters.forEach(ch => {
             let isComp = engine.isCompleted(ch.id);
+            let overrideDate = engine.state.settings.taskDateOverrides ? engine.state.settings.taskDateOverrides[ch.id] : null;
+            let overrideHtml = overrideDate ? `
+                <div class="override-badge">
+                    🗓️ ${overrideDate}로 지정됨
+                    <span style="margin-left: 5px; color: #ef4444; font-weight: 800; cursor: pointer;" onclick="event.preventDefault(); window.clearTaskOverride('${ch.id}')" title="날짜 지정 취소 및 순서 자동 복구">✕</span>
+                </div>
+            ` : '';
+
             contentHtml += `
-                <label style="display: flex; align-items: flex-start; gap: 0.8rem; padding: 0.8rem; border-radius: 8px; background: rgba(0,0,0,0.03); cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.06)'" onmouseout="this.style.background='rgba(0,0,0,0.03)'">
-                    <input type="checkbox" ${isComp ? 'checked' : ''} onchange="window.toggleChapterCompletion('${ch.id}', this.checked)" style="width: 20px; height: 20px; accent-color: ${color}; margin-top: 2px;">
-                    <span style="font-size: 0.95rem; line-height: 1.4; color: ${isComp ? 'var(--text-main)' : 'var(--text-muted)'}; font-weight: ${isComp ? '700' : '400'}">
-                        ${ch.title}
-                    </span>
+                <label class="progress-item-label ${isComp ? 'comp' : ''}">
+                    <input type="checkbox" ${isComp ? 'checked' : ''} onchange="window.toggleChapterCompletion('${ch.id}', this.checked)" style="width: 22px; height: 22px; accent-color: ${color}; margin-top: 2px; flex-shrink: 0;">
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-size: 0.95rem; line-height: 1.4; color: ${isComp ? 'var(--text-main)' : 'var(--text-muted)'}; font-weight: ${isComp ? '700' : '500'}">
+                            ${ch.title}
+                        </span>
+                        ${overrideHtml}
+                    </div>
                 </label>
             `;
         });
@@ -1388,23 +1399,32 @@ window.openFullProgressModal = () => {
     });
 
     modal.innerHTML = `
-        <div style="width: 100%; max-width: 900px; max-height: 85vh; display: flex; flex-direction: column; background: var(--bg-main); border-radius: 20px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.5);">
-            <div style="padding: 1.5rem 2rem; border-bottom: 1px solid rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; background: white;">
+        <div style="width: 100%; max-width: 950px; max-height: 88vh; display: flex; flex-direction: column; background: #f8fafc; border-radius: 24px; overflow: hidden; box-shadow: 0 30px 70px rgba(0,0,0,0.4);">
+            <div style="padding: 1.8rem 2.5rem; border-bottom: 1px solid rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; background: white;">
                 <div>
-                    <h3 style="margin: 0; color: var(--text-main);">📋 전체 진도 확인 및 직접 수정</h3>
-                    <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">체크박스를 선택/해제하면 즉시 진도 기록이 반영됩니다.</p>
+                    <h3 style="margin: 0; color: var(--text-main); font-size: 1.4rem; font-weight: 800;">📋 전체 학습 진도표</h3>
+                    <p style="margin: 0.2rem 0 0 0; font-size: 0.9rem; color: var(--text-muted);">완료 상태를 체크하거나 강제 지정된 날짜를 초기화할 수 있습니다.</p>
                 </div>
-                <button class="btn btn-secondary" onclick="document.getElementById('full-progress-modal').style.display='none'; initDashboard();">✕ 닫기</button>
+                <button class="btn btn-secondary" style="border-radius: 12px; padding: 0.7rem 1.2rem;" onclick="document.getElementById('full-progress-modal').style.display='none'; initDashboard();">✕ 닫기</button>
             </div>
-            <div style="padding: 2rem; overflow-y: auto; background: var(--glass-bg); flex: 1;">
+            <div style="padding: 2.5rem; overflow-y: auto; background: #f1f5f9; flex: 1;">
                 ${contentHtml}
             </div>
-            <div style="padding: 1.2rem 2rem; background: white; text-align: right; border-top: 1px solid rgba(0,0,0,0.1);">
-                <button class="btn btn-primary" onclick="document.getElementById('full-progress-modal').style.display='none'; initDashboard();">적용 완료</button>
+            <div style="padding: 1.5rem 2.5rem; background: white; text-align: right; border-top: 1px solid rgba(0,0,0,0.1); display: flex; justify-content: flex-end; gap: 1rem;">
+                <button class="btn btn-primary" style="background: var(--color-primary); border-radius: 12px; padding: 0.8rem 2rem;" onclick="document.getElementById('full-progress-modal').style.display='none'; initDashboard();">변경 사항 적용 완료</button>
             </div>
         </div>
     `;
     modal.style.display = 'flex';
+};
+
+window.clearTaskOverride = (chapterId) => {
+    if (engine.state.settings.taskDateOverrides && engine.state.settings.taskDateOverrides[chapterId]) {
+        delete engine.state.settings.taskDateOverrides[chapterId];
+        engine.saveState();
+        engine.generateSchedule();
+        window.openFullProgressModal(); // Refresh modal
+    }
 };
 
 window.toggleChapterCompletion = (chapterId, isChecked) => {

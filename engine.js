@@ -62,7 +62,9 @@ window.StudyEngine = class {
     }
 
     isCompleted(chapterId) {
-        const p = this.state.progress[chapterId];
+        const idStr = String(chapterId);
+        // Check if it's completed or has been partially done in our scheduling loop
+        const p = this.state.progress[idStr];
         return p && p.status === 'completed';
     }
 
@@ -296,32 +298,53 @@ window.StudyEngine = class {
             
             let sanity = 0;
             for (let sub of todaysSubjects) {
+                // If we already finished some tasks today (e.g. manually before refresh), subtract from bucket
                 if (dateStr === todayStrForCount && completedTodayPerSubj[sub]) {
-                    subjectBuckets[sub] -= (completedTodayPerSubj[sub] * 1.5);
+                    subjectBuckets[sub] = Math.max(0, subjectBuckets[sub] - (completedTodayPerSubj[sub] * 1.5));
                 }
-                // 0.5시간 이하로 아주 적은 시간만 남았을 때는 더 이상 무리하게 과목을 추가하지 않음
-                while (subjectBuckets[sub] > 0.3 && pending[sub] && pending[sub].length > 0 && effectiveBaseHours > 0.3 && sanity++ < 50) {
-                    let chapter = pending[sub].shift();
+
+                // IMPROVED LINT: Loop through pending tasks and actually schedule them!
+                while (pending[sub] && pending[sub].length > 0 && effectiveBaseHours > 0.1 && subjectBuckets[sub] > 0.1 && sanity++ < 100) {
+                    let chapter = pending[sub][0]; // Peek first
                     
-                    // AI Adaptive Pace Learning Multiplier (Chapter specific)
+                    // AI Adaptive Pace Learning Multiplier
                     let mult = parseFloat(this.state.chapterMultipliers && this.state.chapterMultipliers[chapter.id] ? this.state.chapterMultipliers[chapter.id] : 1.0);
                     let baseH = chapter.weight !== undefined ? (chapter.weight * 1.5) : (HOURS_PER_DIFF[chapter.difficulty] || 2.0);
                     if (sub === 'tax') baseH *= 2.0;
-                    let eHours = baseH * mult; 
+
+                    // If it was partial from previous days in THIS LOOP, get remaining
+                    let required = baseH * mult;
+                    if (trackingCompleted[chapter.id] && typeof trackingCompleted[chapter.id] === 'object') {
+                        required = trackingCompleted[chapter.id].remaining;
+                    } else if (this.state.progress[chapter.id] && this.state.progress[chapter.id].status === 'partial') {
+                        required = required * (1 - this.state.progress[chapter.id].ratio);
+                    }
+
+                    let canDo = Math.min(required, subjectBuckets[sub], effectiveBaseHours);
                     
-                    // 목표 시간이 0.5시간 등 아주 작을 때는 남은 버킷만큼만 할당하여 정확히 시간을 맞춤
-                    if (eHours > subjectBuckets[sub]) eHours = subjectBuckets[sub]; 
-                    if (eHours < 0.2) eHours = 0.2; // 최소 단위는 0.2 (약 12분)
-                    
-                    newSchedule[dateStr].push({
-                        subjectId: sub,
-                        chapter: chapter,
-                        allocated: eHours,
-                        isReview: false
-                    });
-                    
-                    trackingCompleted[chapter.id] = new Date(dateStr).getTime();
-                    subjectBuckets[sub] -= eHours;
+                    if (canDo > 0) {
+                        newSchedule[dateStr].push({
+                            subjectId: sub,
+                            chapter: chapter,
+                            allocated: canDo,
+                            isReview: false
+                        });
+                        
+                        let remaining = required - canDo;
+                        if (remaining > 0.05) {
+                            // Still more to do in next days/buckets
+                            trackingCompleted[chapter.id] = { remaining: remaining, lastDate: dateStr };
+                        } else {
+                            // Finished scheduling this chapter
+                            trackingCompleted[chapter.id] = new Date(dateStr).getTime();
+                            pending[sub].shift(); // Remove from queue only when fully scheduled
+                        }
+                        
+                        subjectBuckets[sub] -= canDo;
+                        effectiveBaseHours -= canDo;
+                    } else {
+                        break; // Nothing more can fit for this subject today
+                    }
                 }
             }
             

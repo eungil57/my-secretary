@@ -286,27 +286,79 @@ h1 {
 
 /* Full Progress Modal specific styles */
 #full-progress-modal {
-    animation: fadeIn 0.3s ease;
+    animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.history-nav-container {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.history-nav-btn {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: white;
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1.1rem;
+    color: var(--text-main);
+}
+
+.history-nav-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(167, 139, 250, 0.2);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.history-nav-btn:active {
+    transform: scale(0.92);
 }
 
 .progress-item-label {
     display: flex;
     align-items: flex-start;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.5);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    transition: all 0.2s ease;
+    gap: 0.85rem;
+    padding: 1rem;
+    border-radius: 14px;
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
 }
 
 .progress-item-label:hover {
-    background: white;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    background: #f8fafc;
+    border-color: var(--color-primary);
     transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(167, 139, 250, 0.1);
+}
+
+.progress-item-label.comp {
+    background: rgba(167, 139, 250, 0.03);
+    border-color: rgba(167, 139, 250, 0.2);
+}
+
+.override-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    background: #fef3c7;
+    color: #d97706;
+    border: 1px solid #fcd34d;
+    margin-top: 0.3rem;
+    display: inline-block;
 }
