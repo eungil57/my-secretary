@@ -344,6 +344,11 @@ window.StudyEngine = class {
                     const reviewDays = Object.keys(reviewTiers).map(Number);
                     let currentDayTs = new Date(dateStr).getTime();
                     
+                    // DIAGNOSTIC HOOK (v18)
+                    if (dateStr === this.getTodayStr()) {
+                        window.__rev_debug = `Today StudySubjs: ${eligibleSubjs.length}`;
+                    }
+                    
                     // Prioritize reviews for subjects we are actually studying progress for today
                     eligibleSubjs.sort((a, b) => {
                         let aInToday = todaysSubjects.includes(a) ? 1 : 0;
@@ -370,6 +375,13 @@ window.StudyEngine = class {
                                 
                                 // SMART ROLL-OVER: Trigger if exactly on target, OR if target was missed recently (< 3 days window)
                                 let isDue = reviewDays.some(d => diffDays === d || (diffDays > d && diffDays < d + 3));
+                                
+                                // DIAGNOSTIC HOOK (v18)
+                                if (dateStr === this.getTodayStr() && isDue) {
+                                    if (!window.__rev_debug.includes("Found Due")) window.__rev_debug += " | Found Due: ";
+                                    window.__rev_debug += `${ch.title}(${diffDays}d), `;
+                                }
+
                                 if (isDue || overrides[ch.id] === dateStr) {
                                     let fb = p && p.feedback ? p.feedback : 'normal';
                                     let fbMult = (fb === 'hard' ? 1.5 : (fb === 'easy' ? 0.7 : 1.0));
