@@ -190,34 +190,53 @@ function initDashboard() {
 
             let displayDate = new Date(todayStr).toLocaleDateString('ko-KR', {weekday:'long', month:'long', day:'numeric'});
             
-            // AI Pacing Diagnostic Warning Logic for 10-Rotations/Year
+            // AI Pacing Diagnostic Warning Logic for 5-Rotations/Year (Advanced Adaptive)
             let pacingWarningHtml = '';
-            let baseRequired = 0;
+            let totalContentHours = 0;
             const H_DIFF = { 1: 1.0, 2: 1.5, 3: 2.5, 4: 3.5, 5: 4.5 };
+            
+            // Calculate total workload for 5 rotations
             for (let k in window.subjectData) {
                 window.subjectData[k].chapters.forEach(c => {
                     let h = c.weight !== undefined ? (c.weight * 1.5) : (H_DIFF[c.difficulty] || 2.0);
-                    baseRequired += h;
+                    if (k === 'tax') h *= 2.0; 
+                    totalContentHours += h;
                 });
                 if (k === 'tax') {
-                    // Tax obj questions
                     window.subjectData[k].chapters.forEach(c => {
-                        baseRequired += 1.5; // weight 1.0 * 1.5
+                        totalContentHours += 1.5; // Obj questions
                     });
                 }
             }
-            let targetTotalHours = baseRequired * 5; // 5 Rotations Total Hours
+            let targetTotalWork = totalContentHours * 5; 
             
+            // Calculate work done so far based on status and percentages
+            let workDoneHours = 0;
+            for (let k in engine.state.progress) {
+                let p = engine.state.progress[k];
+                let subInfo = findSubjectOfChapter(k);
+                if (subInfo) {
+                    let h = subInfo.chapter.weight !== undefined ? (subInfo.chapter.weight * 1.5) : (H_DIFF[subInfo.chapter.difficulty] || 2.0);
+                    if (subInfo.subjKey === 'tax') h *= 2.0;
+                    if (p.status === 'completed') workDoneHours += h;
+                    else if (p.status === 'partial') workDoneHours += (h * (p.ratio || 0));
+                }
+            }
+            
+            let workRemaining = Math.max(0, targetTotalWork - workDoneHours);
+            let today = new Date();
+            let endOfYear = new Date(today.getFullYear(), 11, 31);
+            let diffMs = endOfYear - today;
+            let daysLeft = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+            
+            // Use current daily setting to see if we're on track
             let currentDaily = engine.state.settings.dailyHours;
-            // Assuming 1 year = 300 active study days roughly on current pace without weekends, or 330 with weekends
-            let isFullWeek = engine.state.settings.extraStudyDays && engine.state.settings.extraStudyDays.length > 50; 
-            let expectedStudyDays = isFullWeek ? 330 : 250; 
-            let currentYearly = currentDaily * expectedStudyDays;
+            const isFullWeek = engine.state.settings.extraStudyDays && engine.state.settings.extraStudyDays.length > 50; 
+            let weeklyHoursPlanned = currentDaily * (isFullWeek ? 7 : 5.5);
+            let weeklyPaceNeeded = (workRemaining / daysLeft) * 7;
             
-            if (currentYearly < targetTotalHours * 0.9 && !engine.state.settings.silencePacingWarning) {
-                let targetWeeklyHours = targetTotalHours / 52;
-                let currentWeeklyHours = currentDaily * (isFullWeek ? 7 : 5);
-                let neededWeeklyBoost = Math.max(0, targetWeeklyHours - currentWeeklyHours).toFixed(1);
+            if (weeklyPaceNeeded > weeklyHoursPlanned + 3 && !engine.state.settings.silencePacingWarning) {
+                let neededWeeklyBoost = (weeklyPaceNeeded - weeklyHoursPlanned).toFixed(1);
                 
                 let subjectProgressPct = {};
                 for (let s in window.subjectData) {
@@ -232,7 +251,7 @@ function initDashboard() {
                 }
                 
                 let minSubj = null;
-                let minPct = 1.0;
+                let minPct = 1.1;
                 for (let s in subjectProgressPct) {
                     if (subjectProgressPct[s] < minPct) {
                         minPct = subjectProgressPct[s];
@@ -481,94 +500,114 @@ function createMiniTaskCard(type, chapter, subject, allocatedHours, overrideColo
     `;
 }
 
-window.appComplete = (chapterId, allocatedHours, isReview) => {
-    window.currentCompletingChapter = { id: chapterId, hours: allocatedHours };
-    
-    // 복습이나 이미 완료된 항목은 난이도 묻지않고 즉시 처리
-    if (isReview === true || isReview === 'true') {
-        engine.markCompleted(chapterId, null, allocatedHours * 60, 'normal');
-        initDashboard();
-        return;
-    }
-
-    let modal = document.getElementById('feedback-modal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'feedback-modal';
-        document.body.appendChild(modal);
-    }
-    modal.style.cssText = "display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2147483647; justify-content: center; align-items: center; padding: 1.5rem; box-sizing: border-box;";
-
-    modal.innerHTML = `
-        <div class="glass-panel modal-content" style="width: 100%; max-width: 400px; padding: 2rem; background: var(--bg-main) !important; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
-            <h3 style="margin-bottom: 0.5rem; text-align: center; color: var(--color-primary)">학습 피드백 제출</h3>
-            <p style="text-align: center; color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem;">
-                수고하셨습니다!<br>이 챕터의 체감 난이도를 알려주시면<br>실제 소요 시간과 복습 주기를 AI가 알아서 조율합니다.
-            </p>
-            <div style="display: flex; flex-direction: column; gap: 0.8rem;">
-                <button class="btn" style="background: rgba(134,239,172,0.3); color: #166534; padding: 1.2rem; font-size: 1.1rem; border: 1px solid #86efac" onclick="window.submitFeedback('easy')">
-                    😆 생각보다 쉬웠어요 (빨리 끝남)
-                </button>
-                <button class="btn" style="background: rgba(226,232,240,0.5); color: #334155; padding: 1.2rem; font-size: 1.1rem; border: 1px solid #cbd5e1" onclick="window.submitFeedback('normal')">
-                    🙂 보통이에요 (예상대로)
-                </button>
-                <button class="btn" style="background: rgba(252,165,165,0.3); color: #991b1b; padding: 1.2rem; font-size: 1.1rem; border: 1px solid #fca5a5" onclick="window.submitFeedback('hard')">
-                    🥵 이해하기 어려웠어요 (오래 걸림)
-                </button>
-            </div>
-            <button class="btn btn-secondary" style="width: 100%; margin-top: 1rem;" onclick="document.getElementById('feedback-modal').style.display='none'">취소</button>
-        </div>
-    `;
-    modal.style.display = 'flex';
-};
-
-window.submitFeedback = (feedbackType) => {
-    let c = window.currentCompletingChapter;
-    let mult = feedbackType === 'easy' ? 0.75 : feedbackType === 'hard' ? 1.3 : 1.0;
-    let actualMins = c.hours * mult * 60;
-    engine.markCompleted(c.id, null, actualMins, feedbackType);
-    document.getElementById('feedback-modal').style.display = 'none';
-    initDashboard();
+window.appComplete = (chapterId, allocatedHours) => {
+    window.openPacingCompletionModal(chapterId, allocatedHours);
 };
 
 window.appPartial = (chapterId, allocatedHours) => {
-    let modal = document.getElementById('partial-modal');
+    window.openPacingCompletionModal(chapterId, allocatedHours);
+};
+
+window.openPacingCompletionModal = (chapterId, allocatedHours) => {
+    window.currentCompletingChapter = { id: chapterId, hours: allocatedHours };
+    
+    let modal = document.getElementById('unified-completion-modal');
     if (!modal) {
         modal = document.createElement('div');
-        modal.id = 'partial-modal';
+        modal.id = 'unified-completion-modal';
         document.body.appendChild(modal);
     }
     modal.style.cssText = "display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2147483647; justify-content: center; align-items: center; padding: 1.5rem; box-sizing: border-box;";
-    
+
+    let subInfo = findSubjectOfChapter(chapterId);
+    let titleStr = subInfo ? subInfo.chapter.title : '지정된 일정';
+
     modal.innerHTML = `
-        <div style="width: 100%; max-width: 450px; display: flex; flex-direction: column; background: var(--bg-main); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
-            <div style="padding: 1.5rem; border-bottom: 2px solid rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.7);">
-                <h3 style="margin: 0; color: #f59e0b;">⏳ 부분 학습 (오늘 다 못 끝냄)</h3>
-                <button style="border: none; background: transparent; cursor: pointer; font-size: 1rem;" onclick="document.getElementById('partial-modal').style.display='none'">✕</button>
+        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 0; background: white !important; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.4);">
+            <div style="background: var(--color-primary); padding: 1.5rem; color: white; text-align: center;">
+                <h3 style="margin: 0; font-size: 1.25rem;">📝 오늘의 학습 기록</h3>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; opacity: 0.9;">"${titleStr}"</p>
             </div>
-            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; background: var(--glass-bg);">
-                <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0; line-height: 1.4;">
-                    한 번에 챕터를 모두 끝내지 못하셨군요!<br>
-                    <strong>내일 이어서 편하게 공부할 수 있도록, 무작정 다음 스케줄로 넘기기 전에 오늘 어떤 페이지나 목차에서 끝났는지 짧게 북마크를 적어주세요.</strong><br>
-                    메모해두시면 AI가 전체 목차를 모르더라도 내일 일정에 <b>어디서 이어갈지</b> 자동으로 띄워드립니다!
-                </p>
-                <input type="text" id="partial-bookmark-input" class="form-input" placeholder="어디까지 공부했나요? (예: 167쪽까지, 혹은 공공선택이론)" style="padding: 1rem; font-size: 1.05rem; border-radius: 8px; border: 1px solid #cbd5e1;" onkeypress="if(event.key === 'Enter') window.submitPartial(${chapterId}, ${allocatedHours})">
-                <button class="btn btn-primary" style="padding: 1rem; font-size: 1.05rem; margin-top: 0.5rem; background: #f59e0b; color: white; border: none;" onclick="window.submitPartial(${chapterId}, ${allocatedHours})">진행 상태 책갈피 꽂기 📍</button>
+            
+            <div style="padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem;">
+                <!-- 1. Progress Input -->
+                <div>
+                    <label style="display: block; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-main);">1. 얼마나 진행하셨나요? (진도율)</label>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;">
+                        <button class="progress-btn active" onclick="window.selectModalProgress(100, this)">100%</button>
+                        <button class="progress-btn" onclick="window.selectModalProgress(80, this)">80%</button>
+                        <button class="progress-btn" onclick="window.selectModalProgress(50, this)">50%</button>
+                        <button class="progress-btn" onclick="window.selectModalProgress(30, this)">30%</button>
+                    </div>
+                    <input type="hidden" id="modal-progress-val" value="100">
+                </div>
+
+                <!-- 2. Time Input -->
+                <div>
+                    <label style="display: block; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-main);">2. 실제로 공부한 시간은?</label>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="flex: 1;">
+                            <input type="number" id="modal-actual-hours" class="form-input" value="${allocatedHours.toFixed(1)}" step="0.1" style="width: 100%; padding: 0.8rem; text-align: center; font-size: 1.1rem;">
+                        </div>
+                        <span style="font-weight: 600; color: var(--text-muted);">시간 소요</span>
+                    </div>
+                </div>
+
+                <!-- 3. Feedback / Bookmark -->
+                <div id="modal-feedback-section">
+                    <label style="display: block; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-main);">3. 체감 난이도는 어땠나요?</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 0.5rem;">
+                        <button class="fb-btn" onclick="window.selectModalFB('easy', this)">😆 쉬움</button>
+                        <button class="fb-btn active" onclick="window.selectModalFB('normal', this)">🙂 보통</button>
+                        <button class="fb-btn" onclick="window.selectModalFB('hard', this)">🥵 어려움</button>
+                    </div>
+                    <input type="hidden" id="modal-fb-val" value="normal">
+                </div>
+
+                <div id="modal-bookmark-section" style="display: none;">
+                    <label style="display: block; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-main);">📍 복습을 위한 북마크 (어디까지?)</label>
+                    <input type="text" id="modal-bookmark-val" class="form-input" placeholder="예: 건설계약 진행률 측정까지" style="width: 100%; padding: 0.8rem;">
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                    <button class="btn btn-secondary" style="flex: 1; padding: 1rem;" onclick="document.getElementById('unified-completion-modal').style.display='none'">취소</button>
+                    <button class="btn btn-primary" style="flex: 2; padding: 1rem; background: var(--color-primary); color: white;" onclick="window.submitUnifiedProgress()">기록 저장 및 스케줄 갱신 ✅</button>
+                </div>
             </div>
         </div>
     `;
     modal.style.display = 'flex';
-    setTimeout(() => document.getElementById('partial-bookmark-input').focus(), 50);
 };
 
-window.submitPartial = (chapterId, allocatedHours) => {
-    let bookmark = document.getElementById('partial-bookmark-input').value.trim();
-    if (!bookmark) bookmark = '중간 지점';
+window.selectModalProgress = (val, btn) => {
+    document.getElementById('modal-progress-val').value = val;
+    document.querySelectorAll('.progress-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
     
-    let actualMins = allocatedHours * 60 * 0.5; // 절반 정도 쓴것으로 임의 기록
-    engine.markPartial(chapterId, 50, actualMins, 'normal', bookmark);
-    
-    document.getElementById('partial-modal').style.display = 'none';
+    document.getElementById('modal-bookmark-section').style.display = (val < 100) ? 'block' : 'none';
+    document.getElementById('modal-feedback-section').style.display = (val === 100) ? 'block' : 'none';
+};
+
+window.selectModalFB = (val, btn) => {
+    document.getElementById('modal-fb-val').value = val;
+    document.querySelectorAll('.fb-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+};
+
+window.submitUnifiedProgress = () => {
+    let c = window.currentCompletingChapter;
+    let progress = parseInt(document.getElementById('modal-progress-val').value);
+    let actualHours = parseFloat(document.getElementById('modal-actual-hours').value) || c.hours;
+    let feedback = document.getElementById('modal-fb-val').value;
+    let bookmark = document.getElementById('modal-bookmark-val').value.trim();
+
+    if (progress === 100) {
+        engine.markCompleted(c.id, null, actualHours * 60, feedback);
+    } else {
+        engine.markPartial(c.id, progress, actualHours * 60, feedback, bookmark || `${progress}% 지점`);
+    }
+
+    document.getElementById('unified-completion-modal').style.display = 'none';
     initDashboard();
 };
 
