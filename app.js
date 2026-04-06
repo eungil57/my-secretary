@@ -350,7 +350,7 @@ function initDashboard() {
                         <button class="btn btn-primary glass-panel" style="background: rgba(99, 102, 241, 0.1); color: #6366f1; border: 1px solid #c7d2fe;" onclick="window.openPastProgressModal()">🕰️ 과거 진도 입력</button>
                     </div>
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        ${(engine.state.todayAllDueReviews && engine.state.todayAllDueReviews.length > 0) ? `<button class="btn btn-secondary glass-panel" style="border: 1px solid #f87171; color: #ef4444;" onclick="window.openPendingReviewsModal()">🔄 오늘치 복습 스케줄 커스텀 (총 ${engine.state.todayAllDueReviews.length}개 대기중)</button>` : ''}
+                        ${(engine.state.todayAllDueReviews && engine.state.todayAllDueReviews.length > 0) ? `<button class="btn btn-secondary glass-panel" style="border: 1px solid #f87171; color: #ef4444;" onclick="window.openPendingReviewsModal()">🔄 복습목록 (${engine.state.todayAllDueReviews.length})</button>` : ''}
                         <button class="btn btn-secondary glass-panel" onclick="window.setVacationPeriod()">🏖️ 장기 휴식 설정</button>
                         <button class="btn btn-secondary glass-panel" onclick="window.appSkipDay()">${skipBtnText}</button>
                     </div>
