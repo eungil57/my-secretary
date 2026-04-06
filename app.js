@@ -350,7 +350,7 @@ function initDashboard() {
                         <button class="btn btn-primary glass-panel" style="background: rgba(99, 102, 241, 0.1); color: #6366f1; border: 1px solid #c7d2fe;" onclick="window.openPastProgressModal()">🕰️ 과거 진도 입력</button>
                     </div>
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        ${engine.state.pendingOverflowReviews > 0 ? `<button class="btn btn-secondary glass-panel" style="border: 1px solid #f87171; color: #ef4444;" onclick="window.openPendingReviewsModal()">🔄 대기중인 복습 목록 보고 선택하기 (${engine.state.pendingOverflowReviews}개 대기)</button>` : ''}
+                        ${(engine.state.todayAllDueReviews && engine.state.todayAllDueReviews.length > 0) ? `<button class="btn btn-secondary glass-panel" style="border: 1px solid #f87171; color: #ef4444;" onclick="window.openPendingReviewsModal()">🔄 오늘치 복습 스케줄 커스텀 (총 ${engine.state.todayAllDueReviews.length}개 대기중)</button>` : ''}
                         <button class="btn btn-secondary glass-panel" onclick="window.setVacationPeriod()">🏖️ 장기 휴식 설정</button>
                         <button class="btn btn-secondary glass-panel" onclick="window.appSkipDay()">${skipBtnText}</button>
                     </div>
@@ -723,8 +723,11 @@ window.appSkipDay = () => {
 };
 
 window.openPendingReviewsModal = () => {
-    let pendingList = engine.state.todayPendingReviews || [];
-    if (pendingList.length === 0) return;
+    let allList = engine.state.todayAllDueReviews || [];
+    if (allList.length === 0) return;
+    
+    let todaySch = engine.state.schedule[engine.getTodayStr()] || [];
+    let scheduledIds = todaySch.filter(t => t.isReview).map(t => String(t.chapter.id));
     
     let modal = document.getElementById('pending-reviews-modal');
     if (!modal) {
@@ -733,13 +736,15 @@ window.openPendingReviewsModal = () => {
         document.body.appendChild(modal);
     }
     
-    let listHtml = pendingList.map(item => {
+    let listHtml = allList.map(item => {
         let subj = window.subjectData[item.subjKey];
+        let chIdStr = String(item.ch.id);
+        let isChecked = scheduledIds.includes(chIdStr) ? 'checked' : '';
         return `
-            <label style="display: flex; align-items: center; gap: 10px; padding: 12px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
-                <input type="checkbox" class="pending-review-checkbox" value="${item.ch.id}" style="width: 18px; height: 18px; accent-color: var(--color-primary);">
+            <label style="display: flex; align-items: center; gap: 10px; padding: 12px; background: ${isChecked?'#f0fdf4':'white'}; border: 1px solid ${isChecked?'#86efac':'#e2e8f0'}; border-radius: 8px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='${isChecked?'#dcfce7':'#f8fafc'}'" onmouseout="this.style.background='${isChecked?'#f0fdf4':'white'}'">
+                <input type="checkbox" class="pending-review-checkbox" value="${item.ch.id}" ${isChecked} style="width: 18px; height: 18px; accent-color: var(--color-primary);">
                 <div style="display: flex; flex-direction: column;">
-                    <span style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">[${subj.name}] ${item.ch.title}</span>
+                    <span style="font-weight: 700; color: ${isChecked?'#166534':'var(--text-main)'}; font-size: 0.95rem;">[${subj.name}] ${item.ch.title}</span>
                     <span style="font-size: 0.8rem; color: var(--text-muted);">${item.dur.toFixed(1)}시간 예상 • ${item.diffDays}일 전 완료건</span>
                 </div>
             </label>
@@ -750,39 +755,33 @@ window.openPendingReviewsModal = () => {
     modal.innerHTML = `
         <div class="glass-panel" style="background: var(--bg-main); width: 100%; max-width: 450px; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
             <div style="padding: 1.5rem; border-bottom: 1px solid rgba(0,0,0,0.05);">
-                <h3 style="margin: 0; font-size: 1.2rem; color: var(--text-main);">🔄 복습 스케줄 추가 선택</h3>
-                <p style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">오늘 추가로 돌릴 복습을 선택하세요. 선택하지 않은 항목은 다음 일정으로 자연스럽게 넘어갑니다.</p>
+                <h3 style="margin: 0; font-size: 1.2rem; color: var(--text-main);">🔄 오늘치 복습 스케줄 커스텀하기</h3>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">자동 배정된 복습을 취소하거나 대기중인 복습을 마음대로 교체 및 추가할 수 있습니다. 체크된 항목만 오늘 스케줄에 확정됩니다.</p>
             </div>
             <div style="padding: 1.5rem; max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-variant);">
                 ${listHtml}
             </div>
             <div style="padding: 1.5rem; border-top: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: flex-end; gap: 0.5rem; background: var(--bg-main);">
                 <button class="btn btn-secondary" onclick="document.getElementById('pending-reviews-modal').style.display='none'">취소</button>
-                <button class="btn btn-primary" onclick="window.submitPendingReviews()">추가하기</button>
+                <button class="btn btn-primary" onclick="window.submitPendingReviews()">스케줄 확정하기</button>
             </div>
         </div>
     `;
 };
 
 window.submitPendingReviews = () => {
-    let checkboxes = document.querySelectorAll('.pending-review-checkbox:checked');
-    if (checkboxes.length === 0) {
-        document.getElementById('pending-reviews-modal').style.display='none';
-        return;
-    }
-    
-    let dStr = engine.getTodayStr();
-    let selectedCount = 0;
-    
-    if (!engine.state.settings.taskDateOverrides) engine.state.settings.taskDateOverrides = {};
-    
+    let checkboxes = document.querySelectorAll('.pending-review-checkbox');
+    let selectedIds = [];
     checkboxes.forEach(cb => {
-        engine.state.settings.taskDateOverrides[cb.value] = dStr;
-        selectedCount++;
+        if (cb.checked) {
+            selectedIds.push(cb.value);
+        }
     });
     
-    if (!engine.state.settings.extraReviews) engine.state.settings.extraReviews = {};
-    engine.state.settings.extraReviews[dStr] = (engine.state.settings.extraReviews[dStr] || 0) + selectedCount;
+    let dStr = engine.getTodayStr();
+    
+    if (!engine.state.settings.selectedReviews) engine.state.settings.selectedReviews = {};
+    engine.state.settings.selectedReviews[dStr] = selectedIds;
     
     engine.saveState();
     engine.generateSchedule();

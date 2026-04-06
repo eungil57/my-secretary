@@ -405,25 +405,47 @@ window.StudyEngine = class {
                         }
                     }
                     
-                    availableReviewsToday.sort((a,b) => {
-                        let wA = (a.subjKey === 'tax' || a.subjKey === 'accounting') ? 2 : 1;
-                        let wB = (b.subjKey === 'tax' || b.subjKey === 'accounting') ? 2 : 1;
-                        if (wA !== wB) return wB - wA;
-                        let dA = a.diffDays === '지정' ? 0 : a.diffDays;
-                        let dB = b.diffDays === '지정' ? 0 : b.diffDays;
-                        return dA - dB;
-                    });
-                    
-                    let extraRev = (this.state.settings.extraReviews && this.state.settings.extraReviews[dateStr]) || 0;
-                    let targetReviewCount = 3 + extraRev;
+                    let heavySubjs = ['tax', 'accounting'];
                     
                     if (dateStr === this.getTodayStr()) {
-                        this.state.todayPendingReviews = availableReviewsToday.slice(targetReviewCount);
-                        this.state.pendingOverflowReviews = this.state.todayPendingReviews.length;
+                        let fullPool = [...availableReviewsToday];
+                        fullPool.sort((a,b) => {
+                            let wA = heavySubjs.includes(a.subjKey) ? 2 : 1;
+                            let wB = heavySubjs.includes(b.subjKey) ? 2 : 1;
+                            if (wA !== wB) return wB - wA;
+                            let dA = a.diffDays === '지정' ? 0 : a.diffDays;
+                            let dB = b.diffDays === '지정' ? 0 : b.diffDays;
+                            return dA - dB;
+                        });
+                        this.state.todayAllDueReviews = fullPool;
                     }
                     
-                    if (availableReviewsToday.length > targetReviewCount) {
-                        availableReviewsToday = availableReviewsToday.slice(0, targetReviewCount);
+                    let explicitlySelected = this.state.settings.selectedReviews && this.state.settings.selectedReviews[dateStr];
+                    
+                    if (explicitlySelected && Array.isArray(explicitlySelected)) {
+                        availableReviewsToday = availableReviewsToday.filter(r => explicitlySelected.includes(String(r.ch.id)));
+                    } else {
+                        let targetReviewCount = 3 + ((this.state.settings.extraReviews && this.state.settings.extraReviews[dateStr]) || 0);
+                        
+                        let heavyPool = availableReviewsToday.filter(r => heavySubjs.includes(r.subjKey));
+                        let lightPool = availableReviewsToday.filter(r => !heavySubjs.includes(r.subjKey));
+                        
+                        let sFn = (a,b) => (a.diffDays === '지정'?0:a.diffDays) - (b.diffDays === '지정'?0:b.diffDays);
+                        heavyPool.sort(sFn);
+                        lightPool.sort(sFn);
+                        
+                        let finalSelection = [];
+                        while(finalSelection.length < targetReviewCount && (heavyPool.length > 0 || lightPool.length > 0)) {
+                            let remainder = finalSelection.length % 3;
+                            if (remainder < 2) {
+                                if (heavyPool.length > 0) finalSelection.push(heavyPool.shift());
+                                else if (lightPool.length > 0) finalSelection.push(lightPool.shift());
+                            } else {
+                                if (lightPool.length > 0) finalSelection.push(lightPool.shift());
+                                else if (heavyPool.length > 0) finalSelection.push(heavyPool.shift());
+                            }
+                        }
+                        availableReviewsToday = finalSelection;
                     }
                     
                     reviewReservedTime = availableReviewsToday.reduce((sum, r) => sum + r.dur, 0);
