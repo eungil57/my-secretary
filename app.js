@@ -359,17 +359,21 @@ function initDashboard() {
         if (viewType === 'history' || viewType === 'monthly') {
             let monthTitle = window.currentViewDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
             html += `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1.5rem;">
                     <div class="history-nav-container">
                         <button class="history-nav-btn" onclick="window.historyPrevMonth()" title="이전 달">❮</button>
                         <h2 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.02em;">${monthTitle}</h2>
                         <button class="history-nav-btn" onclick="window.historyNextMonth()" title="다음 달">❯</button>
                     </div>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        ${viewType === 'monthly' ? `<button class="btn btn-secondary" style="padding: 0.9rem 1.5rem; border-radius: 14px; font-weight: 700; color: var(--text-muted); box-shadow: 0 4px 10px rgba(0,0,0,0.05);" onclick="window.setVacationPeriod()">🏖️ 긴 휴식 (기간 지정)</button>` : ''}
                         ${viewType === 'history' ? `<button class="btn btn-primary" style="background: var(--color-primary); color: white; padding: 0.9rem 1.8rem; border-radius: 14px; box-shadow: 0 10px 25px var(--color-primary-glow);" onclick="window.openFullProgressModal()">📋 전체 진도 확인/수정</button>` : ''}
                     </div>
                 </div>
+                ${viewType === 'monthly' ? `
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
+                    <button class="btn btn-secondary glass-panel" style="padding: 0.6rem 1.2rem; border-radius: 12px; font-weight: 700; color: var(--text-muted); font-size: 0.85rem;" onclick="window.setVacationPeriod()" title="며칠간 길게 쉴 때 사용">🏖️ 긴 휴식 (기간 지정)</button>
+                </div>
+                ` : ''}
             `;
         }
         html += `<div class="${(daysToRender === 7) ? 'weekly-grid' : 'monthly-grid'}">`;
@@ -432,7 +436,7 @@ function initDashboard() {
             
             let isSkipped = engine.state.settings.skippedDays && engine.state.settings.skippedDays[dateStr];
             let skipToggleHtml = (viewType === 'weekly' || viewType === 'monthly') ? 
-                `<label style="font-size:0.75rem; color:var(--text-muted); cursor:pointer; font-weight:600;"><input type="checkbox" onchange="window.toggleSkipDayCard('${dateStr}', this.checked)" ${isSkipped?'checked':''} style="accent-color: #ef4444; margin-right:4px;">휴식</label>` : '';
+                `<label style="cursor:pointer; display:flex; align-items:center;" title="하루 온전히 쉴 때 체크"><input type="checkbox" onchange="window.toggleSkipDayCard('${dateStr}', this.checked)" ${isSkipped?'checked':''} style="accent-color: #ef4444; width:16px; height:16px; margin:0; cursor:pointer;"></label>` : '';
 
             html += `
                 <div class="calendar-day" ondragover="event.preventDefault()" ondrop="window.dropTask(event, '${dateStr}')">
