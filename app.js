@@ -171,7 +171,6 @@ function initDashboard() {
                     <p style="color: var(--text-muted); margin-top: 1rem;">주말이거나 모든 일정을 마치셨습니다.</p>
                     <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem;">
                         <button class="btn btn-primary" onclick="window.changeDailyTime()">➕ 휴일에 공부 일정 추가하기</button>
-                        <button class="btn btn-secondary" onclick="window.setVacationPeriod()">🏖️ 장기 휴식 (방학/병가) 설정</button>
                     </div>
                 </div>
             `;
@@ -351,7 +350,6 @@ function initDashboard() {
                     </div>
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                         ${(engine.state.todayAllDueReviews && engine.state.todayAllDueReviews.length > 0) ? `<button class="btn btn-secondary glass-panel" style="border: 1px solid #f87171; color: #ef4444;" onclick="window.openPendingReviewsModal()">🔄 복습목록 (${engine.state.todayAllDueReviews.length})</button>` : ''}
-                        <button class="btn btn-secondary glass-panel" onclick="window.setVacationPeriod()">🏖️ 장기 휴식 설정</button>
                         <button class="btn btn-secondary glass-panel" onclick="window.appSkipDay()">${skipBtnText}</button>
                     </div>
                 </div>
@@ -367,7 +365,10 @@ function initDashboard() {
                         <h2 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.02em;">${monthTitle}</h2>
                         <button class="history-nav-btn" onclick="window.historyNextMonth()" title="다음 달">❯</button>
                     </div>
-                    ${viewType === 'history' ? `<button class="btn btn-primary" style="background: var(--color-primary); color: white; padding: 0.9rem 1.8rem; border-radius: 14px; box-shadow: 0 10px 25px var(--color-primary-glow);" onclick="window.openFullProgressModal()">📋 전체 진도 확인/수정</button>` : ''}
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        ${viewType === 'monthly' ? `<button class="btn btn-secondary" style="padding: 0.9rem 1.5rem; border-radius: 14px; font-weight: 700; color: var(--text-muted); box-shadow: 0 4px 10px rgba(0,0,0,0.05);" onclick="window.setVacationPeriod()">🏖️ 긴 휴식 (기간 지정)</button>` : ''}
+                        ${viewType === 'history' ? `<button class="btn btn-primary" style="background: var(--color-primary); color: white; padding: 0.9rem 1.8rem; border-radius: 14px; box-shadow: 0 10px 25px var(--color-primary-glow);" onclick="window.openFullProgressModal()">📋 전체 진도 확인/수정</button>` : ''}
+                    </div>
                 </div>
             `;
         }
@@ -429,10 +430,17 @@ function initDashboard() {
                 }
             }
             
+            let isSkipped = engine.state.settings.skippedDays && engine.state.settings.skippedDays[dateStr];
+            let skipToggleHtml = (viewType === 'weekly' || viewType === 'monthly') ? 
+                `<label style="font-size:0.75rem; color:var(--text-muted); cursor:pointer; font-weight:600;"><input type="checkbox" onchange="window.toggleSkipDayCard('${dateStr}', this.checked)" ${isSkipped?'checked':''} style="accent-color: #ef4444; margin-right:4px;">휴식</label>` : '';
+
             html += `
                 <div class="calendar-day" ondragover="event.preventDefault()" ondrop="window.dropTask(event, '${dateStr}')">
-                    <div class="calendar-date">${displayDate}</div>
-                    <div class="calendar-badges">${badgesHtml}</div>
+                    <div class="calendar-date" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>${displayDate}</span>
+                        ${skipToggleHtml}
+                    </div>
+                    <div class="calendar-badges">${isSkipped ? `<div class="calendar-empty" style="color: #ef4444; opacity: 0.8; font-weight: 700;">🏖️ 휴식 (공부 쉼)</div>` : badgesHtml}</div>
                 </div>
             `;
             currentDate.setDate(currentDate.getDate() + 1);
@@ -701,6 +709,18 @@ window.setVacationPeriod = () => {
     } else {
         alert('해당 기간은 이미 모두 휴무일로 설정되어 있습니다.');
     }
+};
+
+window.toggleSkipDayCard = (dateStr, isSkipped) => {
+    if (!engine.state.settings.skippedDays) engine.state.settings.skippedDays = {};
+    if (isSkipped) {
+        engine.state.settings.skippedDays[dateStr] = true;
+    } else {
+        delete engine.state.settings.skippedDays[dateStr];
+    }
+    engine.saveState();
+    engine.generateSchedule();
+    initDashboard();
 };
 
 window.appSkipDay = () => {
