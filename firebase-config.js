@@ -22,8 +22,8 @@ window.firebaseSync = {
     onLogin: async (user) => {
         window.firebaseSync.userId = user.uid;
         document.getElementById('auth-status').innerHTML = `
-            <div id="sync-indicator" style="padding: 0.5rem; background: rgba(124, 58, 237, 0.1); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #6d28d9; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" title="클릭하여 서버에서 강제 새로고침 (V12)">
-                <span>☁️ 동기화 켜짐 <strong style="color: #ffffff; font-size: 0.85rem; margin-left: 6px; background: #7c3aed; padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">V12 실시간</strong></span>
+            <div id="sync-indicator" style="padding: 0.5rem; background: rgba(124, 58, 237, 0.1); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #6d28d9; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" title="클릭하여 서버에서 강제 새로고침">
+                <span>☁️ 동기화 켜짐 <strong style="color: #ffffff; font-size: 0.85rem; margin-left: 6px; background: #7c3aed; padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">실시간</strong></span>
                 <button id="logout-btn" style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:#ef4444; font-weight:700; padding:0;">로그아웃</button>
             </div>
         `;

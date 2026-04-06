@@ -351,12 +351,20 @@ window.StudyEngine = class {
                     }
                     
                     // Prioritize reviews for subjects we are actually studying progress for today
-                    eligibleSubjs.sort((a, b) => {
-                        let aInToday = todaysSubjects.includes(a) ? 1 : 0;
-                        let bInToday = todaysSubjects.includes(b) ? 1 : 0;
-                        return bInToday - aInToday;
-                    });
+                    if (todaysSubjects.length > 0) {
+                        let strictEligible = eligibleSubjs.filter(s => todaysSubjects.includes(s));
+                        if (strictEligible.length > 0) {
+                            eligibleSubjs = strictEligible;
+                        }
+                    } else {
+                        eligibleSubjs.sort((a, b) => {
+                            let aInToday = todaysSubjects.includes(a) ? 1 : 0;
+                            let bInToday = todaysSubjects.includes(b) ? 1 : 0;
+                            return bInToday - aInToday;
+                        });
+                    }
                     
+                    outerLoop:
                     for (let subjKey of eligibleSubjs) {
                         let subj = window.subjectData[subjKey];
                         if (!subj) continue;
@@ -394,7 +402,7 @@ window.StudyEngine = class {
                                     let dur = (reviewTiers[matchedTier] || 0.5) * fbMult;
                                     reviewReservedTime += dur;
                                     availableReviewsToday.push({ subjKey, ch, dur, diffDays: (overrides[ch.id] === dateStr ? '지정' : matchedTier) });
-                                    if (availableReviewsToday.length >= 6) break; // Limit reviews per day
+                                    if (availableReviewsToday.length >= 6) break outerLoop; // Limit reviews per day (break completely)
                                 }
                             }
                         }
