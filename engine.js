@@ -364,7 +364,6 @@ window.StudyEngine = class {
                         });
                     }
                     
-                    outerLoop:
                     for (let subjKey of eligibleSubjs) {
                         let subj = window.subjectData[subjKey];
                         if (!subj) continue;
@@ -400,13 +399,34 @@ window.StudyEngine = class {
                                     let matchedTier = revDaysRev.find(d => diffDays >= d) || 1;
                                     
                                     let dur = (reviewTiers[matchedTier] || 0.5) * fbMult;
-                                    reviewReservedTime += dur;
                                     availableReviewsToday.push({ subjKey, ch, dur, diffDays: (overrides[ch.id] === dateStr ? '지정' : matchedTier) });
-                                    if (availableReviewsToday.length >= 6) break outerLoop; // Limit reviews per day (break completely)
                                 }
                             }
                         }
                     }
+                    
+                    availableReviewsToday.sort((a,b) => {
+                        let wA = (a.subjKey === 'tax' || a.subjKey === 'accounting') ? 2 : 1;
+                        let wB = (b.subjKey === 'tax' || b.subjKey === 'accounting') ? 2 : 1;
+                        if (wA !== wB) return wB - wA;
+                        let dA = a.diffDays === '지정' ? 0 : a.diffDays;
+                        let dB = b.diffDays === '지정' ? 0 : b.diffDays;
+                        return dA - dB;
+                    });
+                    
+                    let extraRev = (this.state.settings.extraReviews && this.state.settings.extraReviews[dateStr]) || 0;
+                    let targetReviewCount = 3 + extraRev;
+                    
+                    if (dateStr === this.getTodayStr()) {
+                        this.state.pendingOverflowReviews = Math.max(0, availableReviewsToday.length - targetReviewCount);
+                    }
+                    
+                    if (availableReviewsToday.length > targetReviewCount) {
+                        availableReviewsToday = availableReviewsToday.slice(0, targetReviewCount);
+                    }
+                    
+                    reviewReservedTime = availableReviewsToday.reduce((sum, r) => sum + r.dur, 0);
+                    
                 }
             }
             // Cap review reservation to 35% of daily hours to keep progress as priority

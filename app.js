@@ -350,6 +350,7 @@ function initDashboard() {
                         <button class="btn btn-primary glass-panel" style="background: rgba(99, 102, 241, 0.1); color: #6366f1; border: 1px solid #c7d2fe;" onclick="window.openPastProgressModal()">🕰️ 과거 진도 입력</button>
                     </div>
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        ${engine.state.pendingOverflowReviews > 0 ? `<button class="btn btn-secondary glass-panel" style="border: 1px solid #f87171; color: #ef4444;" onclick="window.addExtraReviews()">🔄 대기중인 복습 스케줄 추가 (+3개)</button>` : ''}
                         <button class="btn btn-secondary glass-panel" onclick="window.setVacationPeriod()">🏖️ 장기 휴식 설정</button>
                         <button class="btn btn-secondary glass-panel" onclick="window.appSkipDay()">${skipBtnText}</button>
                     </div>
@@ -719,6 +720,15 @@ window.appSkipDay = () => {
             initDashboard();
         }
     }
+};
+
+window.addExtraReviews = () => {
+    let dStr = engine.getTodayStr();
+    if (!engine.state.settings.extraReviews) engine.state.settings.extraReviews = {};
+    engine.state.settings.extraReviews[dStr] = (engine.state.settings.extraReviews[dStr] || 0) + 3;
+    engine.saveState();
+    engine.generateSchedule();
+    initDashboard();
 };
 
 window.appCompleteAhead = () => {

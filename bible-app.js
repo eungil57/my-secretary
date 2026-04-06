@@ -20,7 +20,9 @@ class BibleTracker {
         return !!this.state.readChapters[`${bookId}-${chap}`];
     }
     markReadRange(bookId, start, end) {
-        const todayStr = new Date().toISOString().split('T')[0];
+        const d = new Date();
+        const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+        const todayStr = `${y}-${m}-${day}`;
         for(let i=start; i<=end; i++) {
             if (!this.state.readChapters[`${bookId}-${i}`]) {
                 this.state.readChapters[`${bookId}-${i}`] = todayStr;
