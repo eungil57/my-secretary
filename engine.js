@@ -6,6 +6,7 @@ const HOURS_PER_DIFF = {
 
 window.StudyEngine = class {
     constructor() {
+        window.engine = this;
         this.loadState();
         // 항상 최신 5시간 옵션으로 당일 일정을 강제 재구성
         this.generateSchedule();
@@ -404,6 +405,14 @@ window.StudyEngine = class {
             reviewReservedTime = Math.min(reviewReservedTime, baseHours * 0.35);
 
             let progressEffectiveHours = effectiveBaseHours - reviewReservedTime;
+            
+            if (effectiveBaseHours > 0) {
+                let ratio = progressEffectiveHours / effectiveBaseHours;
+                for (let sub of todaysSubjects) {
+                    subjectBuckets[sub] *= ratio;
+                }
+            }
+
             let sanity = 0;
             for (let sub of todaysSubjects) {
                 // If we already finished some tasks today (e.g. manually before refresh), subtract from bucket

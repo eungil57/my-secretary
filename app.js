@@ -233,7 +233,10 @@ function initDashboard() {
                     });
                 }
             }
-            let targetTotalWork = totalContentHours * 5; 
+            // Calculate total workload for 3 rotations (1 progress + 2 reviews = approx 1.8x)
+            let rotationTarget = 3;
+            let reviewMultiplier = 1.8;
+            let targetTotalWork = totalContentHours * reviewMultiplier; 
             
             // Calculate work done so far based on status and percentages
             let workDoneHours = 0;
@@ -243,8 +246,8 @@ function initDashboard() {
                 if (subInfo && subInfo.chapter) {
                     let h = subInfo.chapter.weight !== undefined ? (subInfo.chapter.weight * 1.5) : (H_DIFF[subInfo.chapter.difficulty] || 2.0);
                     if (subInfo.subjKey === 'tax') h *= 2.0;
-                    if (p.status === 'completed') workDoneHours += h;
-                    else if (p.status === 'partial') workDoneHours += (h * (p.ratio || 0));
+                    if (p.status === 'completed') workDoneHours += (h * reviewMultiplier);
+                    else if (p.status === 'partial') workDoneHours += (h * reviewMultiplier * (p.ratio || 0));
                 }
             }
             
@@ -315,12 +318,12 @@ function initDashboard() {
                             <div style="display: flex; flex-direction: column; gap: 0.8rem; flex: 1;">
                                 <h3 style="color: #b91c1c; margin: 0; font-size: 1.15rem;">[AI 스케줄 긴급 진단] 수험 페이스 상향 권고</h3>
                                 <p style="color: #991b1b; margin: 0; font-size: 0.95rem; line-height: 1.5;">
-                                    현재 일일 <b>${currentDaily}시간</b> 페이스로는 1년 내 합격 최소선인 <b>'전 과목 5회독'</b>(총 ${Math.round(targetTotalWork)}시간 소요 예정) 달성이 시기적으로 어렵습니다.
+                                    현재 일일 <b>${currentDaily}시간</b> 페이스로는 1년 내 합격 최소선인 <b>'전 과목 3회독'</b>(총 ${Math.round(targetTotalWork)}시간 소요 예정) 달성이 시기적으로 어렵습니다.
                                 </p>
                                 <div style="padding: 0.8rem 1rem; background: rgba(255,255,255,0.7); border-radius: 8px; border: 1px solid #fecaca; margin-top: 0.2rem;">
                                     <p style="color: #b91c1c; margin: 0; font-size: 0.95rem; line-height: 1.6; font-weight: 600;">💡 AI 맞춤형 행동 지침:</p>
                                     <ul style="color: #991b1b; margin: 0.5rem 0 0 0; padding-left: 1.2rem; font-size: 0.9rem; line-height: 1.5;">
-                                        <li>5회독 목표 지표를 지키려면 **남은 일수를 감안한** <b>주당 평균 ${Math.round(weeklyPaceNeeded)}시간</b>의 거시적 학습이 필수적입니다. 현재 계획 대비 <b>매주 최소 ${neededWeeklyBoost}시간</b>을 더 확보하십시오.</li>
+                                        <li>3회독 목표 지표를 지키려면 **남은 일수를 감안한** <b>주당 평균 ${Math.round(weeklyPaceNeeded)}시간</b>의 거시적 학습이 필수적입니다. 현재 계획 대비 <b>매주 최소 ${neededWeeklyBoost}시간</b>을 더 확보하십시오. (복습 시간 포함)</li>
                                         <li>${targetChaptersText}</li>
                                     </ul>
                                 </div>
@@ -458,8 +461,9 @@ function initDashboard() {
 }
 
 function findSubjectOfChapter(id) {
-    if (engine.state.customTasks) {
-        let ct = engine.state.customTasks.find(c => c.id == id);
+    let dEngine = window.engine || (typeof engine !== 'undefined' ? engine : null);
+    if (dEngine && dEngine.state && dEngine.state.customTasks) {
+        let ct = dEngine.state.customTasks.find(c => c.id == id);
         if (ct) return { subjKey: ct.subjectId, subject: window.subjectData[ct.subjectId], chapter: ct };
     }
     for (let subjKey in window.subjectData) {
