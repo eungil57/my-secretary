@@ -687,10 +687,10 @@ window.setVacationPeriod = () => {
     window.vacationDragState.end = null;
     window.vacationDragState.isDragging = false;
     
-    modal.style.cssText = "display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center; padding: 1rem; user-select: none;";
+    modal.style.cssText = "display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: flex-start; overflow-y: auto; padding: 2rem 1rem; user-select: none;";
     
     modal.innerHTML = `
-        <div class="glass-panel" style="background: #FAF6F0; width: 100%; max-width: 400px; height: auto; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(92, 77, 60, 0.15); display: flex; flex-direction: column;">
+        <div class="glass-panel" style="background: #FAF6F0; width: 100%; max-width: 400px; margin: auto; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(92, 77, 60, 0.15); display: flex; flex-direction: column;">
             <div style="padding: 1.2rem 1.5rem; border-bottom: 1px solid rgba(139,115,85,0.15); display:flex; justify-content:space-between; align-items:center; flex-shrink: 0;">
                 <h3 style="margin: 0; font-size: 1.15rem; color: #5C4D3C; font-weight: 800;">🏖️ 긴 휴식 (기간 지정)</h3>
                 <button onclick="document.getElementById('vacation-modal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#a89f91; padding:0;">&times;</button>
