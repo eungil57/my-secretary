@@ -690,20 +690,20 @@ window.setVacationPeriod = () => {
     modal.style.cssText = "display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center; padding: 1rem; user-select: none;";
     
     modal.innerHTML = `
-        <div class="glass-panel" style="background: var(--bg-main); width: 100%; max-width: 400px; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
-            <div style="padding: 1.5rem; border-bottom: 1px solid rgba(0,0,0,0.05); display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin: 0; font-size: 1.2rem; color: var(--text-main);">🏖️ 긴 휴식 (기간 지정)</h3>
-                <button onclick="document.getElementById('vacation-modal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);">&times;</button>
+        <div class="glass-panel" style="background: #FAF6F0; width: 100%; max-width: 400px; height: 530px; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(92, 77, 60, 0.15); display: flex; flex-direction: column;">
+            <div style="padding: 1.2rem 1.5rem; border-bottom: 1px solid rgba(139,115,85,0.15); display:flex; justify-content:space-between; align-items:center; flex-shrink: 0;">
+                <h3 style="margin: 0; font-size: 1.15rem; color: #5C4D3C; font-weight: 800;">🏖️ 긴 휴식 (기간 지정)</h3>
+                <button onclick="document.getElementById('vacation-modal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#a89f91; padding:0;">&times;</button>
             </div>
-            <div style="padding: 1.5rem; background: #ffffff; display:flex; flex-direction:column; gap:1rem;">
-                <div style="text-align:center; color: var(--text-muted); font-size: 0.9rem;">
+            <div style="padding: 1.5rem; background: #FAF6F0; display:flex; flex-direction:column; gap:1rem; flex-grow: 1;">
+                <div style="text-align:center; color: #8c7b6b; font-size: 0.85rem;">
                     쉬는 날의 <b>시작일</b>과 <b>종료일</b>을 차례로 클릭하세요. (또는 드래그)
                 </div>
-                <div id="vacation-calendar-container"></div>
+                <div id="vacation-calendar-container" style="flex-grow: 1;"></div>
             </div>
-            <div style="padding: 1.5rem; border-top: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: flex-end; gap: 0.5rem; background: var(--bg-main);">
-                <button class="btn btn-secondary" onclick="document.getElementById('vacation-modal').style.display='none'">취소</button>
-                <button class="btn btn-primary" onclick="window.submitVacationPeriod()">선택 기간 휴식 등록</button>
+            <div style="padding: 1.2rem 1.5rem; border-top: 1px solid rgba(139,115,85,0.15); display: flex; justify-content: flex-end; gap: 0.5rem; background: #FAF6F0; flex-shrink: 0;">
+                <button class="btn btn-secondary" style="background: #EBE4D8; color: #5C4D3C; border: none; font-weight: 700;" onclick="document.getElementById('vacation-modal').style.display='none'">취소</button>
+                <button class="btn btn-primary" style="background: #a68a6d; color: white; border: none; font-weight: 700; box-shadow: 0 4px 10px rgba(166,138,109,0.3);" onclick="window.submitVacationPeriod()">선택 기간 휴식 등록</button>
             </div>
         </div>
     `;
@@ -726,18 +726,22 @@ window.renderVacationCalendar = () => {
     let totalDays = lastDay.getDate();
     
     let html = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-            <button class="btn btn-secondary glass-panel" style="padding:0.4rem 0.8rem; border-radius:14px; font-weight:800; color:var(--text-main);" onclick="window.vacationChangeMonth(-1)">❮</button>
-            <div style="font-weight:900; font-size:1.25rem; color: #475569; background: #f8fafc; padding: 0.4rem 1.2rem; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.02)">${y}년 ${m+1}월</div>
-            <button class="btn btn-secondary glass-panel" style="padding:0.4rem 0.8rem; border-radius:14px; font-weight:800; color:var(--text-main);" onclick="window.vacationChangeMonth(1)">❯</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem;">
+            <button style="background:none; border:none; padding:0.4rem; cursor:pointer; color:#8c7b6b;" onclick="window.vacationChangeMonth(-1)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <div style="font-weight:900; font-size:1.2rem; color: #5C4D3C;">${y}년 ${m+1}월</div>
+            <button style="background:none; border:none; padding:0.4rem; cursor:pointer; color:#8c7b6b;" onclick="window.vacationChangeMonth(1)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
         </div>
-        <div style="display:grid; grid-template-columns:repeat(7,1fr); grid-template-rows:repeat(6, 42px); gap:6px; text-align:center;">
+        <div style="display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows: 38px; gap:4px; text-align:center;">
     `;
     
     let wdays = ['S','M','T','W','T','F','S'];
     wdays.forEach((w, i) => {
-        let color = i===0 ? '#ef4444' : (i===6 ? '#0ea5e9' : 'var(--text-muted)');
-        html += `<div style="font-size:0.85rem; color:${color}; font-weight:800; padding-bottom:0.8rem;">${w}</div>`;
+        let color = i===0 ? '#d97777' : (i===6 ? '#6c9a8b' : '#a89f91');
+        html += `<div style="font-size:0.85rem; color:${color}; font-weight:800; display:flex; align-items:center; justify-content:center;">${w}</div>`;
     });
     
     let totalCells = 42;
@@ -769,23 +773,23 @@ window.renderVacationCalendar = () => {
         let wday = dDate.getDay();
         
         let bg = 'transparent';
-        let tColor = (wday === 0 || isHol) ? '#ef4444' : (wday === 6 ? '#0ea5e9' : '#334155');
+        let tColor = (wday === 0 || isHol) ? '#d97777' : (wday === 6 ? '#6c9a8b' : '#5C4D3C');
         let fontWeight = '700';
-        let boxStyle = `border-radius: 50%; width: 34px; height: 34px; margin: auto; display:flex; align-items:center; justify-content:center;`;
+        let boxStyle = `border-radius: 50%; width: 32px; height: 32px; margin: auto; display:flex; align-items:center; justify-content:center;`;
         
         if (isSel || isSingleSel) {
-            bg = '#a855f7'; // Purple pastel highlights
+            bg = '#a68a6d'; // Mocha beige
             tColor = 'white';
-            boxStyle += ` box-shadow: 0 4px 10px rgba(168,85,247,0.3);`;
+            boxStyle += ` box-shadow: 0 4px 10px rgba(166,138,109,0.3);`;
         } else if (isSkip || isHol) {
-            bg = '#fee2e2'; // Light red for skipped
-            tColor = '#ef4444';
+            bg = '#f2e8e3'; // Warm pinkish beige
+            tColor = '#c28c8c';
         }
         
         html += `
             <div onmousedown="window.vdDragStart('${dStr}')"
                  onmouseenter="window.vdDragEnter('${dStr}')"
-                 style="cursor:pointer;">
+                 style="cursor:pointer; display:flex; align-items:center; justify-content:center;">
                  <div style="background:${bg}; color:${tColor}; font-weight:${fontWeight}; font-size:0.95rem; transition: all 0.2s ease; ${boxStyle}">
                      ${d}
                  </div>
