@@ -695,7 +695,7 @@ window.setVacationPeriod = () => {
                 <h3 style="margin: 0; font-size: 1.2rem; color: var(--text-main);">🏖️ 긴 휴식 (기간 지정)</h3>
                 <button onclick="document.getElementById('vacation-modal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);">&times;</button>
             </div>
-            <div style="padding: 1.5rem; background: var(--bg-variant); display:flex; flex-direction:column; gap:1rem;">
+            <div style="padding: 1.5rem; background: #ffffff; display:flex; flex-direction:column; gap:1rem;">
                 <div style="text-align:center; color: var(--text-muted); font-size: 0.9rem;">
                     쉬는 날의 <b>시작일</b>과 <b>종료일</b>을 차례로 클릭하세요. (또는 드래그)
                 </div>
@@ -731,7 +731,7 @@ window.renderVacationCalendar = () => {
             <div style="font-weight:900; font-size:1.25rem; color: #475569; background: #f8fafc; padding: 0.4rem 1.2rem; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.02)">${y}년 ${m+1}월</div>
             <button class="btn btn-secondary glass-panel" style="padding:0.4rem 0.8rem; border-radius:14px; font-weight:800; color:var(--text-main);" onclick="window.vacationChangeMonth(1)">❯</button>
         </div>
-        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; text-align:center;">
+        <div style="display:grid; grid-template-columns:repeat(7,1fr); grid-template-rows:repeat(6, 42px); gap:6px; text-align:center;">
     `;
     
     let wdays = ['S','M','T','W','T','F','S'];
@@ -785,7 +785,7 @@ window.renderVacationCalendar = () => {
         html += `
             <div onmousedown="window.vdDragStart('${dStr}')"
                  onmouseenter="window.vdDragEnter('${dStr}')"
-                 style="cursor:pointer; padding: 4px 0;">
+                 style="cursor:pointer;">
                  <div style="background:${bg}; color:${tColor}; font-weight:${fontWeight}; font-size:0.95rem; transition: all 0.2s ease; ${boxStyle}">
                      ${d}
                  </div>
