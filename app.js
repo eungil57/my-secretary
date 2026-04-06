@@ -671,48 +671,194 @@ window.submitUnifiedProgress = () => {
     initDashboard();
 };
 
+window.vacationDragState = { isDragging: false, start: null, end: null, baseMonth: new Date() };
+
 window.setVacationPeriod = () => {
-    let startStr = prompt('휴식/병가를 시작할 첫 날짜를 입력하세요 (예: 2026-03-24):', engine.getTodayStr());
-    if (!startStr) return;
-    let endStr = prompt('마지막으로 휴식할 날짜를 입력하세요 (예: 2026-03-31):', startStr);
-    if (!endStr) return;
-
-    let startDate = new Date(startStr);
-    let endDate = new Date(endStr);
-    
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        alert('날짜 형식이 올바르지 않습니다. YYYY-MM-DD 형식으로 입력해주세요.');
-        return;
+    let modal = document.getElementById('vacation-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'vacation-modal';
+        document.body.appendChild(modal);
     }
     
-    if (endDate < startDate) {
-        alert('시작 날짜가 종료 날짜보다 늦을 수 없습니다.');
-        return;
-    }
+    window.vacationDragState.baseMonth = new Date();
+    window.vacationDragState.start = null;
+    window.vacationDragState.end = null;
+    window.vacationDragState.isDragging = false;
+    
+    modal.style.cssText = "display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center; padding: 1rem; user-select: none;";
+    
+    modal.innerHTML = `
+        <div class="glass-panel" style="background: var(--bg-main); width: 100%; max-width: 400px; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+            <div style="padding: 1.5rem; border-bottom: 1px solid rgba(0,0,0,0.05); display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin: 0; font-size: 1.2rem; color: var(--text-main);">🏖️ 긴 휴식 (기간 지정)</h3>
+                <button onclick="document.getElementById('vacation-modal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);">&times;</button>
+            </div>
+            <div style="padding: 1.5rem; background: var(--bg-variant); display:flex; flex-direction:column; gap:1rem;">
+                <div style="text-align:center; color: var(--text-muted); font-size: 0.9rem;">
+                    쉬는 날의 <b>시작일</b>과 <b>종료일</b>을 차례로 클릭하세요. (또는 드래그)
+                </div>
+                <div id="vacation-calendar-container"></div>
+            </div>
+            <div style="padding: 1.5rem; border-top: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: flex-end; gap: 0.5rem; background: var(--bg-main);">
+                <button class="btn btn-secondary" onclick="document.getElementById('vacation-modal').style.display='none'">취소</button>
+                <button class="btn btn-primary" onclick="window.submitVacationPeriod()">선택 기간 휴식 등록</button>
+            </div>
+        </div>
+    `;
+    
+    window.renderVacationCalendar();
+};
 
-    let current = new Date(startDate);
-    let addedCount = 0;
-    while(current <= endDate) {
-        const y = current.getFullYear();
-        const m = String(current.getMonth() + 1).padStart(2, '0');
-        const d = String(current.getDate()).padStart(2, '0');
-        const dtStr = `${y}-${m}-${d}`;
+window.renderVacationCalendar = () => {
+    let container = document.getElementById('vacation-calendar-container');
+    if(!container) return;
+    
+    let base = window.vacationDragState.baseMonth;
+    let y = base.getFullYear();
+    let m = base.getMonth();
+    
+    let firstDay = new Date(y, m, 1);
+    let lastDay = new Date(y, m + 1, 0);
+    
+    let startOffset = firstDay.getDay();
+    let totalDays = lastDay.getDate();
+    
+    let html = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <button class="btn btn-secondary" style="padding:0.3rem 0.6rem;" onclick="window.vacationChangeMonth(-1)">❮</button>
+            <div style="font-weight:bold; font-size:1.1rem;">${y}년 ${m+1}월</div>
+            <button class="btn btn-secondary" style="padding:0.3rem 0.6rem;" onclick="window.vacationChangeMonth(1)">❯</button>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:5px; text-align:center;">
+    `;
+    
+    let wdays = ['일','월','화','수','목','금','토'];
+    wdays.forEach(w => {
+        html += `<div style="font-size:0.8rem; color:var(--text-muted); font-weight:bold; padding-bottom:0.5rem;">${w}</div>`;
+    });
+    
+    for(let i=0; i<startOffset; i++){
+        html += `<div></div>`;
+    }
+    
+    let selStart = window.vacationDragState.start ? new Date(window.vacationDragState.start).getTime() : null;
+    let selEnd = window.vacationDragState.end ? new Date(window.vacationDragState.end).getTime() : null;
+    
+    if (selStart && selEnd && selStart > selEnd) {
+        let t = selStart; selStart = selEnd; selEnd = t;
+    }
+    
+    let skipped = engine.state.settings.skippedDays || {};
+    
+    for(let d=1; d<=totalDays; d++){
+        let dStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        let ts = new Date(dStr).getTime();
         
-        if (!engine.state.skippedDays.includes(dtStr)) {
-            engine.state.skippedDays.push(dtStr);
-            addedCount++;
+        let isSel = (selStart && selEnd && ts >= selStart && ts <= selEnd);
+        let isSingleSel = (selStart && ts === selStart && !selEnd);
+        let isSkip = skipped[dStr];
+        
+        let bg = 'white';
+        let tColor = 'var(--text-main)';
+        let border = '1px solid #e2e8f0';
+        
+        if (isSel || isSingleSel) {
+            bg = 'var(--color-primary)';
+            tColor = 'white';
+            border = '1px solid var(--color-primary)';
+        } else if (isSkip && !(isSel || isSingleSel)) {
+            bg = '#fee2e2';
+            tColor = '#ef4444';
+            border = '1px solid #fca5a5';
         }
-        current.setDate(current.getDate() + 1);
+        
+        html += `
+            <div onmousedown="window.vdDragStart('${dStr}')"
+                 onmouseenter="window.vdDragEnter('${dStr}')"
+                 style="background:${bg}; color:${tColor}; border:${border}; border-radius:8px; padding:0.6rem 0; cursor:pointer; font-weight:600; font-size:0.9rem;">
+                 ${d}
+            </div>
+        `;
+    }
+    html += `</div>`;
+    
+    container.innerHTML = html;
+};
+
+window.vacationChangeMonth = (diff) => {
+    let b = window.vacationDragState.baseMonth;
+    b.setMonth(b.getMonth() + diff);
+    window.renderVacationCalendar();
+};
+
+window.vdDragStart = (dStr) => {
+    if (window.vacationDragState.start && window.vacationDragState.end) {
+        window.vacationDragState.start = dStr;
+        window.vacationDragState.end = null;
+    } else if (!window.vacationDragState.start) {
+        window.vacationDragState.start = dStr;
+        window.vacationDragState.end = null;
+    } else if (!window.vacationDragState.end) {
+        window.vacationDragState.end = dStr;
+        window.vacationDragState.isDragging = false;
+        window.renderVacationCalendar();
+        return;
+    }
+    window.vacationDragState.isDragging = true;
+    window.renderVacationCalendar();
+};
+
+window.vdDragEnter = (dStr) => {
+    if(!window.vacationDragState.isDragging) return;
+    window.vacationDragState.end = dStr;
+    window.renderVacationCalendar();
+};
+
+document.addEventListener('mouseup', () => {
+    if(window.vacationDragState && window.vacationDragState.isDragging){
+        window.vacationDragState.isDragging = false;
+        window.renderVacationCalendar();
+    }
+});
+
+window.submitVacationPeriod = () => {
+    let st = window.vacationDragState.start;
+    let ed = window.vacationDragState.end || window.vacationDragState.start;
+    
+    if(!st) {
+        alert("선택된 기간이 없습니다.");
+        return;
     }
     
-    if (addedCount > 0) {
+    let stMs = new Date(st).getTime();
+    let edMs = new Date(ed).getTime();
+    
+    if (stMs > edMs) {
+        let t = st; st = ed; ed = t;
+    }
+    
+    if (!engine.state.settings.skippedDays) engine.state.settings.skippedDays = {};
+    
+    let d = new Date(st);
+    let endD = new Date(ed);
+    let added = 0;
+    while(d <= endD) {
+        let y = d.getFullYear(); let m = String(d.getMonth()+1).padStart(2,'0'); let dd = String(d.getDate()).padStart(2,'0');
+        let dStr = `${y}-${m}-${dd}`;
+        if (!engine.state.settings.skippedDays[dStr]) {
+            engine.state.settings.skippedDays[dStr] = true;
+            added++;
+        }
+        d.setDate(d.getDate() + 1);
+    }
+    
+    if (added > 0) {
         engine.saveState();
         engine.generateSchedule();
         initDashboard();
-        alert(`총 ${addedCount}일의 장기 휴식(휴무) 기간이 성공적으로 설정되었습니다. 스케줄이 자동으로 뒤로 연기되었습니다!`);
-    } else {
-        alert('해당 기간은 이미 모두 휴무일로 설정되어 있습니다.');
     }
+    document.getElementById('vacation-modal').style.display='none';
 };
 
 window.toggleSkipDayCard = (dateStr, isSkipped) => {
