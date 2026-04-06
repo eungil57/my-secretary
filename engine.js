@@ -4,6 +4,15 @@ const HOURS_PER_DIFF = {
     1: 1.0, 2: 1.5, 3: 2.5, 4: 3.5, 5: 4.5
 };
 
+window.KOREAN_HOLIDAYS = [
+    '2024-02-09', '2024-02-10', '2024-02-11', '2024-02-12', // Seollal 2024
+    '2024-09-16', '2024-09-17', '2024-09-18', // Chuseok 2024
+    '2025-01-28', '2025-01-29', '2025-01-30', // Seollal 2025
+    '2025-10-05', '2025-10-06', '2025-10-07', '2025-10-08', // Chuseok 2025
+    '2026-02-16', '2026-02-17', '2026-02-18', // Seollal 2026
+    '2026-09-24', '2026-09-25', '2026-09-26'  // Chuseok 2026
+];
+
 window.StudyEngine = class {
     constructor() {
         window.engine = this;
@@ -117,6 +126,10 @@ window.StudyEngine = class {
         }
     }
 
+    isKoreanHoliday(dateStr) {
+        return KOREAN_HOLIDAYS.includes(dateStr);
+    }
+
     generateSchedule() {
         try {
             this.checkDelays();
@@ -201,10 +214,10 @@ window.StudyEngine = class {
             const dateStr = `${year}-${month}-${day}`;
             
             let wday = currentDate.getDay(); 
-            if (this.state.skippedDays.includes(dateStr) || wday === 0 || wday === 6) {
-                if (this.state.skippedDays.includes(dateStr)) {
+            if (this.state.skippedDays.includes(dateStr) || window.KOREAN_HOLIDAYS.includes(dateStr) || wday === 0 || wday === 6) {
+                if (this.state.skippedDays.includes(dateStr) || window.KOREAN_HOLIDAYS.includes(dateStr)) {
                     currentDate.setDate(currentDate.getDate() + 1);
-                    continue; // Skip if explicitly skipped by user
+                    continue; // Skip if explicitly skipped by user or holiday
                 }
                 if (!this.state.settings.extraStudyDays || !this.state.settings.extraStudyDays.includes(dateStr)) {
                     currentDate.setDate(currentDate.getDate() + 1);

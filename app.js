@@ -434,8 +434,9 @@ function initDashboard() {
                 }
             }
             
-            let isSkipped = engine.state.settings.skippedDays && engine.state.settings.skippedDays[dateStr];
-            let skipToggleHtml = (viewType === 'weekly' || viewType === 'monthly') ? 
+            let wday = currentDate.getDay();
+            let isSkipped = engine.state.skippedDays && engine.state.skippedDays.includes(dateStr);
+            let skipToggleHtml = (viewType === 'weekly' || viewType === 'monthly') && wday !== 0 && wday !== 6 ? 
                 `<label style="cursor:pointer; display:flex; align-items:center;" title="하루 온전히 쉴 때 체크"><input type="checkbox" onchange="window.toggleSkipDayCard('${dateStr}', this.checked)" ${isSkipped?'checked':''} style="accent-color: #ef4444; width:16px; height:16px; margin:0; cursor:pointer;"></label>` : '';
 
             html += `
@@ -725,21 +726,26 @@ window.renderVacationCalendar = () => {
     let totalDays = lastDay.getDate();
     
     let html = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-            <button class="btn btn-secondary" style="padding:0.3rem 0.6rem;" onclick="window.vacationChangeMonth(-1)">❮</button>
-            <div style="font-weight:bold; font-size:1.1rem;">${y}년 ${m+1}월</div>
-            <button class="btn btn-secondary" style="padding:0.3rem 0.6rem;" onclick="window.vacationChangeMonth(1)">❯</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <button class="btn btn-secondary glass-panel" style="padding:0.4rem 0.8rem; border-radius:14px; font-weight:800; color:var(--text-main);" onclick="window.vacationChangeMonth(-1)">❮</button>
+            <div style="font-weight:900; font-size:1.25rem; color: #475569; background: #f8fafc; padding: 0.4rem 1.2rem; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.02)">${y}년 ${m+1}월</div>
+            <button class="btn btn-secondary glass-panel" style="padding:0.4rem 0.8rem; border-radius:14px; font-weight:800; color:var(--text-main);" onclick="window.vacationChangeMonth(1)">❯</button>
         </div>
-        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:5px; text-align:center;">
+        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; text-align:center;">
     `;
     
-    let wdays = ['일','월','화','수','목','금','토'];
-    wdays.forEach(w => {
-        html += `<div style="font-size:0.8rem; color:var(--text-muted); font-weight:bold; padding-bottom:0.5rem;">${w}</div>`;
+    let wdays = ['S','M','T','W','T','F','S'];
+    wdays.forEach((w, i) => {
+        let color = i===0 ? '#ef4444' : (i===6 ? '#0ea5e9' : 'var(--text-muted)');
+        html += `<div style="font-size:0.85rem; color:${color}; font-weight:800; padding-bottom:0.8rem;">${w}</div>`;
     });
+    
+    let totalCells = 42;
+    let renderedCells = 0;
     
     for(let i=0; i<startOffset; i++){
         html += `<div></div>`;
+        renderedCells++;
     }
     
     let selStart = window.vacationDragState.start ? new Date(window.vacationDragState.start).getTime() : null;
@@ -749,7 +755,7 @@ window.renderVacationCalendar = () => {
         let t = selStart; selStart = selEnd; selEnd = t;
     }
     
-    let skipped = engine.state.settings.skippedDays || {};
+    let skipped = engine.state.skippedDays || [];
     
     for(let d=1; d<=totalDays; d++){
         let dStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -757,30 +763,42 @@ window.renderVacationCalendar = () => {
         
         let isSel = (selStart && selEnd && ts >= selStart && ts <= selEnd);
         let isSingleSel = (selStart && ts === selStart && !selEnd);
-        let isSkip = skipped[dStr];
+        let isSkip = skipped.includes(dStr);
+        let isHol = engine.isKoreanHoliday && engine.isKoreanHoliday(dStr);
+        let dDate = new Date(ts);
+        let wday = dDate.getDay();
         
-        let bg = 'white';
-        let tColor = 'var(--text-main)';
-        let border = '1px solid #e2e8f0';
+        let bg = 'transparent';
+        let tColor = (wday === 0 || isHol) ? '#ef4444' : (wday === 6 ? '#0ea5e9' : '#334155');
+        let fontWeight = '700';
+        let boxStyle = `border-radius: 50%; width: 34px; height: 34px; margin: auto; display:flex; align-items:center; justify-content:center;`;
         
         if (isSel || isSingleSel) {
-            bg = 'var(--color-primary)';
+            bg = '#a855f7'; // Purple pastel highlights
             tColor = 'white';
-            border = '1px solid var(--color-primary)';
-        } else if (isSkip && !(isSel || isSingleSel)) {
-            bg = '#fee2e2';
+            boxStyle += ` box-shadow: 0 4px 10px rgba(168,85,247,0.3);`;
+        } else if (isSkip || isHol) {
+            bg = '#fee2e2'; // Light red for skipped
             tColor = '#ef4444';
-            border = '1px solid #fca5a5';
         }
         
         html += `
             <div onmousedown="window.vdDragStart('${dStr}')"
                  onmouseenter="window.vdDragEnter('${dStr}')"
-                 style="background:${bg}; color:${tColor}; border:${border}; border-radius:8px; padding:0.6rem 0; cursor:pointer; font-weight:600; font-size:0.9rem;">
-                 ${d}
+                 style="cursor:pointer; padding: 4px 0;">
+                 <div style="background:${bg}; color:${tColor}; font-weight:${fontWeight}; font-size:0.95rem; transition: all 0.2s ease; ${boxStyle}">
+                     ${d}
+                 </div>
             </div>
         `;
+        renderedCells++;
     }
+    
+    while(renderedCells < totalCells) {
+        html += `<div></div>`;
+        renderedCells++;
+    }
+    
     html += `</div>`;
     
     container.innerHTML = html;
@@ -838,7 +856,7 @@ window.submitVacationPeriod = () => {
         let t = st; st = ed; ed = t;
     }
     
-    if (!engine.state.settings.skippedDays) engine.state.settings.skippedDays = {};
+    if (!engine.state.skippedDays) engine.state.skippedDays = [];
     
     let d = new Date(st);
     let endD = new Date(ed);
@@ -846,8 +864,8 @@ window.submitVacationPeriod = () => {
     while(d <= endD) {
         let y = d.getFullYear(); let m = String(d.getMonth()+1).padStart(2,'0'); let dd = String(d.getDate()).padStart(2,'0');
         let dStr = `${y}-${m}-${dd}`;
-        if (!engine.state.settings.skippedDays[dStr]) {
-            engine.state.settings.skippedDays[dStr] = true;
+        if (!engine.state.skippedDays.includes(dStr)) {
+            engine.state.skippedDays.push(dStr);
             added++;
         }
         d.setDate(d.getDate() + 1);
@@ -862,11 +880,13 @@ window.submitVacationPeriod = () => {
 };
 
 window.toggleSkipDayCard = (dateStr, isSkipped) => {
-    if (!engine.state.settings.skippedDays) engine.state.settings.skippedDays = {};
+    if (!engine.state.skippedDays) engine.state.skippedDays = [];
     if (isSkipped) {
-        engine.state.settings.skippedDays[dateStr] = true;
+        if (!engine.state.skippedDays.includes(dateStr)) {
+            engine.state.skippedDays.push(dateStr);
+        }
     } else {
-        delete engine.state.settings.skippedDays[dateStr];
+        engine.state.skippedDays = engine.state.skippedDays.filter(d => d !== dateStr);
     }
     engine.saveState();
     engine.generateSchedule();
