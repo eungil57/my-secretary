@@ -702,8 +702,9 @@ window.setVacationPeriod = () => {
                 <div id="vacation-calendar-container" style="flex-grow: 1;"></div>
             </div>
             <div style="padding: 1.2rem 1.5rem; border-top: 1px solid rgba(139,115,85,0.15); display: flex; justify-content: flex-end; gap: 0.5rem; background: #FAF6F0; flex-shrink: 0;">
-                <button class="btn btn-secondary" style="background: #EBE4D8; color: #5C4D3C; border: none; font-weight: 700;" onclick="document.getElementById('vacation-modal').style.display='none'">취소</button>
-                <button class="btn btn-primary" style="background: #a68a6d; color: white; border: none; font-weight: 700; box-shadow: 0 4px 10px rgba(166,138,109,0.3);" onclick="window.submitVacationPeriod()">선택 기간 휴식 등록</button>
+                <button class="btn btn-secondary" style="background: transparent; color: #a89f91; border: none; font-weight: 700; margin-right: auto;" onclick="document.getElementById('vacation-modal').style.display='none'">닫기</button>
+                <button class="btn btn-secondary" style="background: #EBE4D8; color: #d97777; border: none; font-weight: 800;" onclick="window.removeVacationPeriod()">선택 해제</button>
+                <button class="btn btn-primary" style="background: #a68a6d; color: white; border: none; font-weight: 800; box-shadow: 0 4px 10px rgba(166,138,109,0.3);" onclick="window.submitVacationPeriod()">휴일 등록</button>
             </div>
         </div>
     `;
@@ -876,6 +877,48 @@ window.submitVacationPeriod = () => {
     }
     
     if (added > 0) {
+        engine.saveState();
+        engine.generateSchedule();
+        initDashboard();
+    }
+    document.getElementById('vacation-modal').style.display='none';
+};
+
+window.removeVacationPeriod = () => {
+    let st = window.vacationDragState.start;
+    let ed = window.vacationDragState.end || window.vacationDragState.start;
+    
+    if(!st) {
+        alert("해제할 기간이 선택되지 않았습니다.");
+        return;
+    }
+    
+    let stMs = new Date(st).getTime();
+    let edMs = new Date(ed).getTime();
+    
+    if (stMs > edMs) {
+        let t = st; st = ed; ed = t;
+    }
+    
+    if (!engine.state.skippedDays) engine.state.skippedDays = [];
+    
+    let d = new Date(st);
+    let endD = new Date(ed);
+    let removed = 0;
+    
+    while(d <= endD) {
+        let y = d.getFullYear(); let m = String(d.getMonth()+1).padStart(2,'0'); let dd = String(d.getDate()).padStart(2,'0');
+        let dStr = `${y}-${m}-${dd}`;
+        
+        let idx = engine.state.skippedDays.indexOf(dStr);
+        if (idx !== -1) {
+            engine.state.skippedDays.splice(idx, 1);
+            removed++;
+        }
+        d.setDate(d.getDate() + 1);
+    }
+    
+    if (removed > 0) {
         engine.saveState();
         engine.generateSchedule();
         initDashboard();
