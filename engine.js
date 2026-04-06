@@ -418,7 +418,8 @@ window.StudyEngine = class {
                     let targetReviewCount = 3 + extraRev;
                     
                     if (dateStr === this.getTodayStr()) {
-                        this.state.pendingOverflowReviews = Math.max(0, availableReviewsToday.length - targetReviewCount);
+                        this.state.todayPendingReviews = availableReviewsToday.slice(targetReviewCount);
+                        this.state.pendingOverflowReviews = this.state.todayPendingReviews.length;
                     }
                     
                     if (availableReviewsToday.length > targetReviewCount) {
