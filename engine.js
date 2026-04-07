@@ -345,9 +345,24 @@ window.StudyEngine = class {
                 });
             }
             
-            // USER REQUEST: Only show reviews if studying 3+ hours today
+            // USER REQUEST: DRAG&DROP OVERRIDES FOR REVIEWS FIRST
+            let overridingReviews = [];
+            let overrides = this.state.settings.taskDateOverrides || {};
+            for (let subjKey in window.subjectData) {
+                if (!window.subjectData[subjKey]) continue;
+                for (let ch of window.subjectData[subjKey].chapters) {
+                    if (overrides[ch.id] === dateStr && this.isCompleted(ch.id)) {
+                        let p = this.state.progress[ch.id];
+                        let fb = p && p.feedback ? p.feedback : 'normal';
+                        let fbMult = (fb === 'hard' ? 1.5 : (fb === 'easy' ? 0.7 : 1.0));
+                        overridingReviews.push({ subjKey, ch, dur: 0.5 * fbMult, diffDays: '지정' });
+                    }
+                }
+            }
+
             let reviewReservedTime = 0;
-            let availableReviewsToday = [];
+            let availableReviewsToday = [...overridingReviews];
+            
             if (baseHours >= 3.0) {
                 // ELIGIBILITY: All subjects that have any progress are eligible for reviews.
                 // But prioritize subjects that are also in 'todaysSubjects' (progressing today).
@@ -387,6 +402,8 @@ window.StudyEngine = class {
                         let subj = window.subjectData[subjKey];
                         if (!subj) continue;
                         for (let ch of subj.chapters) {
+                            if (overrides[ch.id] === dateStr) continue; // Already handled as override
+                            
                             let p = this.state.progress[ch.id];
                             let compTime = null;
                             if (p && p.status === 'completed' && p.completedAt) {
@@ -398,7 +415,6 @@ window.StudyEngine = class {
                             if (compTime) {
                                 let diffTime = currentDayTs - compTime;
                                 let diffDays = Math.round(diffTime / (1000 * 3600 * 24));
-                                let overrides = this.state.settings.taskDateOverrides || {};
                                 
                                 // SMART ROLL-OVER: Trigger if exactly on target, OR if target was missed recently (< 3 days window)
                                 let isDue = reviewDays.some(d => diffDays === d || (diffDays > d && diffDays < d + 3));
@@ -409,7 +425,7 @@ window.StudyEngine = class {
                                     window.__rev_debug += `${ch.title}(${diffDays}d), `;
                                 }
 
-                                if (isDue || overrides[ch.id] === dateStr) {
+                                if (isDue) {
                                     let fb = p && p.feedback ? p.feedback : 'normal';
                                     let fbMult = (fb === 'hard' ? 1.5 : (fb === 'easy' ? 0.7 : 1.0));
                                     
@@ -418,7 +434,7 @@ window.StudyEngine = class {
                                     let matchedTier = revDaysRev.find(d => diffDays >= d) || 1;
                                     
                                     let dur = (reviewTiers[matchedTier] || 0.5) * fbMult;
-                                    availableReviewsToday.push({ subjKey, ch, dur, diffDays: (overrides[ch.id] === dateStr ? '지정' : matchedTier) });
+                                    availableReviewsToday.push({ subjKey, ch, dur, diffDays: matchedTier });
                                 }
                             }
                         }
@@ -442,20 +458,23 @@ window.StudyEngine = class {
                     let explicitlySelected = this.state.settings.selectedReviews && this.state.settings.selectedReviews[dateStr];
                     
                     if (explicitlySelected && Array.isArray(explicitlySelected)) {
-                        availableReviewsToday = availableReviewsToday.filter(r => explicitlySelected.includes(String(r.ch.id)));
+                        let selectedWithOverrides = availableReviewsToday.filter(r => explicitlySelected.includes(String(r.ch.id)) || r.diffDays === '지정');
+                        let uniqueSel = [];
+                        selectedWithOverrides.forEach(r => { if(!uniqueSel.some(u=>u.ch.id===r.ch.id)) uniqueSel.push(r); });
+                        availableReviewsToday = uniqueSel;
                     } else {
                         let targetReviewCount = 3 + ((this.state.settings.extraReviews && this.state.settings.extraReviews[dateStr]) || 0);
                         
-                        let heavyPool = availableReviewsToday.filter(r => heavySubjs.includes(r.subjKey));
-                        let lightPool = availableReviewsToday.filter(r => !heavySubjs.includes(r.subjKey));
+                        let heavyPool = availableReviewsToday.filter(r => heavySubjs.includes(r.subjKey) && r.diffDays !== '지정');
+                        let lightPool = availableReviewsToday.filter(r => !heavySubjs.includes(r.subjKey) && r.diffDays !== '지정');
                         
-                        let sFn = (a,b) => (a.diffDays === '지정'?0:a.diffDays) - (b.diffDays === '지정'?0:b.diffDays);
+                        let sFn = (a,b) => a.diffDays - b.diffDays;
                         heavyPool.sort(sFn);
                         lightPool.sort(sFn);
                         
-                        let finalSelection = [];
-                        while(finalSelection.length < targetReviewCount && (heavyPool.length > 0 || lightPool.length > 0)) {
-                            let remainder = finalSelection.length % 3;
+                        let finalSelection = [...overridingReviews];
+                        while(finalSelection.length < targetReviewCount + overridingReviews.length && (heavyPool.length > 0 || lightPool.length > 0)) {
+                            let remainder = (finalSelection.length - overridingReviews.length) % 3;
                             if (remainder < 2) {
                                 if (heavyPool.length > 0) finalSelection.push(heavyPool.shift());
                                 else if (lightPool.length > 0) finalSelection.push(lightPool.shift());
@@ -467,12 +486,10 @@ window.StudyEngine = class {
                         availableReviewsToday = finalSelection;
                     }
                     
-                    reviewReservedTime = availableReviewsToday.reduce((sum, r) => sum + r.dur, 0);
-                    
                 }
             }
             // Cap review reservation to 35% of daily hours to keep progress as priority
-            reviewReservedTime = Math.min(reviewReservedTime, baseHours * 0.35);
+            reviewReservedTime = Math.min(availableReviewsToday.reduce((sum, r) => sum + r.dur, 0), baseHours * 0.35);
 
             let progressEffectiveHours = effectiveBaseHours - reviewReservedTime;
             

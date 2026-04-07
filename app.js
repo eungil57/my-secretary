@@ -336,8 +336,62 @@ function initDashboard() {
                 `;
             }
 
+            let missedHtml = '';
+            function getPastDateStr(daysAgo) {
+                let d = new Date(todayStrLocal);
+                d.setDate(d.getDate() - daysAgo);
+                let y = d.getFullYear();
+                let m = String(d.getMonth() + 1).padStart(2, '0');
+                let dd = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${dd}`;
+            }
+            let yStr = getPastDateStr(1);
+            let yTasks = engine.getScheduleForDate(yStr) || [];
+            let missedTasks = [];
+            for (let t of yTasks) {
+                if (!t.isReview) {
+                    if (!engine.isCompleted(t.chapter.id)) {
+                        missedTasks.push(t);
+                    }
+                } else {
+                    let p = engine.state.progress[t.chapter.id];
+                    if (p && p.status === 'completed' && p.completedAt < yStr) {
+                        missedTasks.push(t);
+                    }
+                }
+            }
+            if (missedTasks.length > 0) {
+                let mCards = missedTasks.map(t => {
+                    let color = getPastelColor(t.subjectId);
+                    let subj = window.subjectData[t.subjectId];
+                    if (!subj || !t.chapter) return '';
+                    let prefix = t.isReview ? '[복습] ' : '';
+                    let chId = t.chapter.id ? t.chapter.id.toString() : 'unknown';
+                    return `
+                        <div style="background: rgba(255,255,255,0.7); border: 1px solid ${color}66; border-radius: 8px; padding: 0.8rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-size: 0.75rem; color: ${color}; font-weight: 700;">${subj.name}</span>
+                                <span style="font-size: 0.9rem; font-weight: 600; color: #78350f;">${prefix}${t.chapter.title}</span>
+                            </div>
+                            <button class="btn btn-primary" style="background: ${color}; color: #1e293b; padding: 0.4rem 0.8rem; font-size: 0.8rem; height: fit-content;" onclick="window.appCompletePast('${chId}', '${yStr}', ${t.allocated})">
+                                어제 완료 ✅
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+                
+                missedHtml = `
+                    <div class="glass-panel" style="margin-bottom: 1.5rem; padding: 1.2rem; border-left: 5px solid #d97706; border-radius: 12px; background: rgba(253, 230, 138, 0.3);">
+                        <h3 style="color: #b45309; margin: 0 0 0.5rem 0; font-size: 1.1rem;">⚠️ 어제 못한 일정 (점검)</h3>
+                        <p style="font-size: 0.85rem; color: #92400e; margin: 0 0 1rem 0;">어제 넘겨버린 스케줄입니다. 실제로 공부하셨다면 바로 체크해주세요. 미완료 상태여서 현재 오늘 이후 스케줄로 자동 이월되고 있습니다.</p>
+                        ${mCards}
+                    </div>
+                `;
+            }
+
             html += `
                 ${pacingWarningHtml}
+                ${missedHtml}
                 <h2 style="margin-bottom: 1.5rem; color: var(--text-main); font-size: 1.3rem;">📅 오늘 (${displayDate}) 할 일</h2>
                 <div style="display: flex; flex-direction: column;">
                     ${cardsHtml}
@@ -561,6 +615,10 @@ function createMiniTaskCard(type, chapter, subject, allocatedHours, overrideColo
     `;
 }
 
+window.appCompletePast = (chapterId, pastDateStr, allocatedHours) => {
+    window.openPacingCompletionModal(chapterId, allocatedHours, pastDateStr);
+};
+
 window.appComplete = (chapterId, allocatedHours) => {
     window.openPacingCompletionModal(chapterId, allocatedHours);
 };
@@ -569,8 +627,8 @@ window.appPartial = (chapterId, allocatedHours) => {
     window.openPacingCompletionModal(chapterId, allocatedHours);
 };
 
-window.openPacingCompletionModal = (chapterId, allocatedHours) => {
-    window.currentCompletingChapter = { id: chapterId, hours: allocatedHours };
+window.openPacingCompletionModal = (chapterId, allocatedHours, pastDateStr = null) => {
+    window.currentCompletingChapter = { id: chapterId, hours: allocatedHours, pastDateStr: pastDateStr };
     
     let modal = document.getElementById('unified-completion-modal');
     if (!modal) {
@@ -663,7 +721,7 @@ window.submitUnifiedProgress = () => {
     let bookmark = document.getElementById('modal-bookmark-val').value.trim();
 
     if (progress === 100) {
-        engine.markCompleted(c.id, null, actualHours * 60, feedback);
+        engine.markCompleted(c.id, c.pastDateStr || null, actualHours * 60, feedback);
     } else {
         engine.markPartial(c.id, progress, actualHours * 60, feedback, bookmark || `${progress}% 지점`);
     }
