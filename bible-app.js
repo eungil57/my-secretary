@@ -136,7 +136,7 @@ window.initBibleDashboard = () => {
     let weekBarsHtml = weekDays.map(item => {
         let hPct = (item.count / weekMax) * 100;
         if (hPct < 5 && item.count > 0) hPct = 5;
-        let color = item.count > 0 ? '#D4A373' : '#e2e8f0';
+        let color = item.count > 0 ? '#a4b5c4' : '#e2e8f0';
         return `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100px; gap: 4px; flex: 1;">
                 <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">${item.count > 0 ? item.count : ''}</span>
@@ -206,15 +206,12 @@ window.initBibleDashboard = () => {
             <div>
                 <h1>성경 통독표</h1>
                 <p class="subtitle" style="margin-bottom: 0.5rem;">전체 ${total}장 중 ${readAll}장 완료 (${totalPct}%)</p>
-                <div style="font-size: 0.9rem; color: var(--text-muted); background: var(--glass-bg); padding: 0.8rem; border-radius: 8px; border: 1px solid rgba(0,0,0,0.05); max-height: 80px; overflow-y: auto;">
-                    <strong>📖 상세 진도:</strong> ${readDetailsText}
-                </div>
             </div>
         </div>
 
         <!-- Weekly & Monthly Stats -->
         <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
-            <div class="glass-panel" style="flex: 1; padding: 1.5rem; border-radius: 16px; border-left: 6px solid #D4A373; display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-main);">
+            <div class="glass-panel" style="flex: 1; padding: 1.5rem; border-radius: 16px; border-left: 6px solid #a4b5c4; display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-main);">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span style="font-weight: 700; color: var(--text-muted); font-size: 0.95rem;">🔥 ${window.bibleWeekOffset === 0 ? '이번 주' : '지난주 기록'} : 총 ${periodWeeklyTotal}장</span>
                     <div style="display: flex; gap: 0.5rem;">
@@ -250,8 +247,8 @@ window.initBibleDashboard = () => {
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; width: 140px;">
                     <svg viewBox="0 0 36 36" class="circular-chart" style="width: 100%; border-radius: 50%; background: white; box-shadow: inset 0 0 10px rgba(0,0,0,0.05);">
                         <path class="circle-bg" fill="none" stroke="#f1f5f9" stroke-width="4" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="circle" fill="none" stroke="#C1B0A0" stroke-width="4" stroke-linecap="round" stroke-dasharray="${otPct}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <text x="18" y="20.5" class="percentage" style="fill: #8C7A6B; font-size: 0.55rem; font-weight: 800; text-anchor: middle;">${otPct}%</text>
+                        <path class="circle" fill="none" stroke="#a4b5c4" stroke-width="4" stroke-linecap="round" stroke-dasharray="${otPct}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <text x="18" y="20.5" class="percentage" style="fill: #64748b; font-size: 0.55rem; font-weight: 800; text-anchor: middle;">${otPct}%</text>
                     </svg>
                     <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 700;">구약 (${readOT}/${totalOT}장)</span>
                 </div>
@@ -260,8 +257,8 @@ window.initBibleDashboard = () => {
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; width: 140px;">
                     <svg viewBox="0 0 36 36" class="circular-chart" style="width: 100%; border-radius: 50%; background: white; box-shadow: inset 0 0 10px rgba(0,0,0,0.05);">
                         <path class="circle-bg" fill="none" stroke="#f1f5f9" stroke-width="4" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="circle" fill="none" stroke="#D4B8A3" stroke-width="4" stroke-linecap="round" stroke-dasharray="${ntPct}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <text x="18" y="20.5" class="percentage" style="fill: #A67C63; font-size: 0.55rem; font-weight: 800; text-anchor: middle;">${ntPct}%</text>
+                        <path class="circle" fill="none" stroke="#d1a7b4" stroke-width="4" stroke-linecap="round" stroke-dasharray="${ntPct}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <text x="18" y="20.5" class="percentage" style="fill: #9f7283; font-size: 0.55rem; font-weight: 800; text-anchor: middle;">${ntPct}%</text>
                     </svg>
                     <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 700;">신약 (${readNT}/${totalNT}장)</span>
                 </div>
@@ -315,10 +312,10 @@ window.initBibleDashboard = () => {
             </div>
         </div>
 
-        <h2 style="margin-bottom:1rem; color: #8C7A6B;">📖 구약 성경</h2>
+        <h2 style="margin-bottom:1rem; color: #64748b;">📖 구약 성경</h2>
         ${renderBibleTable('ot')}
 
-        <h2 style="margin-bottom:1rem; margin-top:2rem; color: #A67C63;">✝️ 신약 성경</h2>
+        <h2 style="margin-bottom:1rem; margin-top:2rem; color: #9f7283;">✝️ 신약 성경</h2>
         ${renderBibleTable('nt')}
     `;
 

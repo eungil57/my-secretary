@@ -49,12 +49,12 @@ window.switchTab = (tabId) => {
     if (engSec) engSec.style.display = tabId === 'english' ? 'block' : 'none';
     
     let sidebar = document.querySelector('.sidebar');
-    if (sidebar) {
-        if (tabId === 'bible') {
-            sidebar.style.background = '#faf8f5';
-        } else {
-            sidebar.style.background = ''; // Default resets to CSS
-        }
+    if (tabId === 'bible') {
+        document.documentElement.style.setProperty('--color-sage', '#faf8f5');
+        if (sidebar) sidebar.style.background = '#faf8f5';
+    } else {
+        document.documentElement.style.setProperty('--color-sage', '#D2E0D1'); // original Sage
+        if (sidebar) sidebar.style.background = '';
     }
     
     document.getElementById('nav-planner').classList.toggle('active', tabId === 'planner');
