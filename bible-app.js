@@ -338,11 +338,11 @@ function renderBibleTable(type) {
             
             let chapText = i < 10 ? `0${i}` : `${i}`;
             
-            let bg = read ? 'var(--color-forest)' : '#ffffff';
-            let color = read ? '#ffffff' : 'var(--text-muted)';
-            let border = read ? '1px solid var(--color-forest)' : '1px solid #e8decb';
+            let bg = read ? '#d9bfa4' : '#ffffff';
+            let color = read ? '#ffffff' : '#9c8c7c';
+            let border = read ? '1px solid #d9bfa4' : '1px solid #e8decb';
             let fw = read ? '800' : '600';
-            let shadow = read ? '0 3px 6px rgba(46, 83, 57, 0.4)' : '0 1px 3px rgba(0,0,0,0.03)';
+            let shadow = read ? '0 3px 6px rgba(217, 191, 164, 0.5)' : '0 1px 3px rgba(0,0,0,0.03)';
             
             let iconStr = hasComment ? `<div style="position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; background: #facc15; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 2px rgba(0,0,0,0.2);"></div>` : '';
             chaptersHtml += `<div style="position: relative; width: 38px; height: 38px; min-width: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: ${bg}; color: ${color}; border: ${border}; font-weight: ${fw}; font-size: 0.85rem; cursor: pointer; box-shadow: ${shadow}; transition: all 0.2s; user-select: none;" 
@@ -353,7 +353,7 @@ function renderBibleTable(type) {
         html += `
             <div style="display: flex; gap: 1rem; align-items: stretch; width: 100%;">
                 <div style="flex-shrink: 0; width: 140px; max-width: 140px; background: #ebdcc9; border-radius: 12px; padding: 1.2rem 1rem; display: flex; align-items: flex-start; justify-content: flex-start; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#e3d2bd'" onmouseout="this.style.background='#ebdcc9'" onclick="window.promptBibleReader('${b.id}')">
-                    <span style="font-weight: 800; font-size: 0.95rem; color: var(--color-forest); text-transform: uppercase; letter-spacing: 0.5px;">${b.name}</span>
+                    <span style="font-weight: 800; font-size: 0.95rem; color: #5a4b41; text-transform: uppercase; letter-spacing: 0.5px;">${b.name}</span>
                 </div>
                 <div style="flex: 1; background: #ffffff; border-radius: 12px; padding: 1.2rem 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; align-content: flex-start; box-shadow: 0 4px 10px rgba(0,0,0,0.02); min-height: 70px;">
                     ${chaptersHtml}

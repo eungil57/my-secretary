@@ -48,6 +48,15 @@ window.switchTab = (tabId) => {
     let engSec = document.getElementById('english-view-section');
     if (engSec) engSec.style.display = tabId === 'english' ? 'block' : 'none';
     
+    let sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+        if (tabId === 'bible') {
+            sidebar.style.background = '#faf8f5';
+        } else {
+            sidebar.style.background = ''; // Default resets to CSS
+        }
+    }
+    
     document.getElementById('nav-planner').classList.toggle('active', tabId === 'planner');
     document.getElementById('nav-bible').classList.toggle('active', tabId === 'bible');
     let navEng = document.getElementById('nav-english');
