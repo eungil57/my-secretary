@@ -5,9 +5,9 @@
 
     --bg-main: var(--color-cream);
     --bg-variant: var(--color-cream);
-    --paper-bg: var(--color-sage);
+    --paper-bg: var(--color-cream);
     --glass-bg: var(--color-cream);
-    --glass-border: #B5C9B3;
+    --glass-border: #E3DECB;
     
     --color-primary: var(--color-forest); 
     --color-primary-glow: rgba(46, 83, 57, 0.2);
@@ -39,7 +39,14 @@ body {
     border-radius: 12px;
 }
 
-.sidebar { width: 280px; padding: 2.5rem 1.5rem; display: flex; flex-direction: column; }
+.sidebar { 
+    width: 280px; 
+    padding: 2.5rem 1.5rem; 
+    display: flex; 
+    flex-direction: column; 
+    background: var(--color-sage) !important;
+    border-radius: 12px;
+}
 
 .logo {
     display: flex; align-items: center; gap: 0.75rem;
