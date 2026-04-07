@@ -211,20 +211,19 @@ function initDashboard() {
                     let isTodaySubject = todaysSubjects.length === 0 || todaysSubjects.includes(t.subjectId);
                     
                     if (isTodaySubject) {
-                        // If it's a review for today's subjects (even if overdue mathematically), 
-                        // it should just be a normal 'activeTask' for today.
+                        // If it's a review for today's subjects, normal 'activeTask'.
                         activeTasks.push(t);
                     } else {
                         // Not today's subject
                         if (actualDiffDays > t.reviewDay) {
-                            // Overdue from a past day -> goes to missedTasks
+                            // Mathematically overdue
                             missedTasks.push({ ...t, pastDateStr: getPastDateStr(actualDiffDays - t.reviewDay) });
                         } else {
-                            // Exactly due today, but not today's subject -> HIDE it (will roll over)
-                            // Do nothing (continue)
+                            // Perfectly due today, but wrong subject. User explicitly wants it visible in the missed/extra box today!
+                            missedTasks.push({ ...t, pastDateStr: "타과목 (보류)" });
                         }
                     }
-                    continue; // Skip the default activeTasks.push(t) below since we handled it here
+                    continue;
                 }
             }
             activeTasks.push(t);
