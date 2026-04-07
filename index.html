@@ -71,24 +71,23 @@
         <main class="main-content">
             <!-- Planner View -->
             <div id="planner-view-section">
-                <div class="top-header">
-                    <div>
-                        <h1>스터디 플래너</h1>
-                        <p class="subtitle" id="date-subtitle">로딩중...</p>
+                <div class="top-header" style="display: flex; flex-wrap: wrap; align-items: flex-end; border-bottom: 2px solid var(--color-primary); padding-bottom: 1.5rem; margin-bottom: 1.5rem; gap: 1rem;">
+                    <div style="flex: 1;">
+                        <div style="background: var(--color-primary); color: white; display: inline-block; padding: 0.2rem 0.6rem; font-size: 0.8rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 0.5rem;">DATE.</div>
+                        <h1 style="color: var(--text-main); font-size: 2rem; margin-bottom: 0.2rem;">스터디 플래너</h1>
+                        <p class="subtitle" id="date-subtitle" style="font-weight: 600; font-family: monospace; font-size: 1.1rem;">로딩중...</p>
                     </div>
                     
-                    <div class="view-toggles" style="display: flex; gap: 0.5rem; margin-left: 2rem; margin-right: auto; align-items: center;">
+                    <div class="view-toggles" style="display: flex; gap: 0.3rem; margin-right: auto;">
                         <button class="btn btn-secondary active-view" id="btn-daily" onclick="window.switchScheduleView('daily')">일간</button>
                         <button class="btn btn-secondary" id="btn-weekly" onclick="window.switchScheduleView('weekly')">주간</button>
                         <button class="btn btn-secondary" id="btn-monthly" onclick="window.switchScheduleView('monthly')">월간</button>
-                        <button class="btn btn-secondary" id="btn-history" onclick="window.switchScheduleView('history')" style="background: #fdf2f8; border-color: #fbcfe8; color: #db2777;">학습 기록</button>
+                        <button class="btn btn-secondary" id="btn-history" onclick="window.switchScheduleView('history')" style="margin-left: 0.5rem;">기록</button>
                     </div>
 
-                    <div class="glass-panel time-widget" style="display: flex; align-items: center; gap: 1rem; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onclick="window.openTimeSettingModal()" title="AI/수동 학습 시간 설정">
-                        <div>
-                            <div class="time-label">오늘 목표 시간 (변경하기 ✏️)</div>
-                            <div class="time-value" id="current-hours-display">--시간</div>
-                        </div>
+                    <div style="display: flex; flex-direction: column; border: 1px solid var(--text-main); text-align: center; cursor: pointer; transition: transform 0.2s; background: white;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onclick="window.openTimeSettingModal()" title="클릭하여 목표 시간 설정">
+                        <div style="font-size: 0.75rem; font-weight: 800; color: var(--text-main); border-bottom: 1px solid var(--text-main); padding: 0.4rem 1.5rem; letter-spacing: 1px;">TOTAL TIME</div>
+                        <div class="time-value" id="current-hours-display" style="font-size: 1.4rem; padding: 0.6rem; font-family: monospace; color: var(--text-main);">-- H</div>
                     </div>
                 </div>
 

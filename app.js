@@ -177,7 +177,13 @@ function initDashboard() {
             return `${y}-${m}-${dd}`;
         }
 
+        let overrides = engine.state.settings.taskDateOverrides || {};
+
         for (let t of allTodayTasks) {
+            // If the task has a manual override in the past, DO NOT show it as an active task today.
+            if (overrides[t.chapter.id] && overrides[t.chapter.id] < todayStrLocal) {
+                continue;
+            }
             if (t.isReview && t.reviewDay !== '지정') {
                 let p = engine.state.progress[t.chapter.id];
                 if (p && p.status === 'completed' && p.completedAt) {
@@ -193,7 +199,6 @@ function initDashboard() {
             activeTasks.push(t);
         }
 
-        let overrides = engine.state.settings.taskDateOverrides || {};
         for (let id in overrides) {
             let oDate = overrides[id];
             if (oDate < todayStrLocal) {
@@ -233,26 +238,29 @@ function initDashboard() {
                 let prefix = t.isReview ? '[복습] ' : '';
                 let chId = t.chapter.id ? t.chapter.id.toString() : 'unknown';
                 return `
-                    <div class="glass-panel" style="padding: 1.2rem; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid ${color}; border-radius: 12px; margin-bottom: 1rem; background: var(--glass-bg);">
-                        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-                            <span class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}44; width: fit-content; padding: 0.3rem 0.6rem; font-size: 0.8rem;">
-                                ${subj.icon} ${subj.name}
-                            </span>
+                    <div style="padding: 1rem 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--glass-border); position: relative; background: transparent; margin-bottom: 0;">
+                        <div style="position: absolute; left: 0; width: 4px; height: 60%; background: ${color}; border-radius: 2px;"></div>
+                        <div style="display: flex; flex-direction: column; gap: 0.3rem; padding-left: 1rem;">
+                            <span style="color: ${color}; font-weight: 800; font-size: 0.8rem; letter-spacing: 0.5px;">${subj.name}</span>
                             ${(() => {
-                                let bkmk = (engine.state.bookmarks && engine.state.bookmarks[t.chapter.id]) ? `<span style="display: inline-block; margin-top: 0.2rem; background: #fef3c7; color: #d97706; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.85rem; font-weight: 700; border: 1px solid #fde68a; width: fit-content;">📍 이어서: ${engine.state.bookmarks[t.chapter.id]} 부터</span>` : '';
+                                let bkmk = (engine.state.bookmarks && engine.state.bookmarks[t.chapter.id]) ? `<span style="font-size: 0.85rem; color: #d97706; background: #fffbeb; padding: 2px 6px; border-radius: 4px; border: 1px solid #fde68a; margin-left: 0.5rem;">📍 ${engine.state.bookmarks[t.chapter.id]}</span>` : '';
                                 let titleStr = t.chapter.title || '제목 없음';
                                 let isCustom = chId.startsWith('custom_');
                                 let titleHtml = isCustom ? 
                                     `<span style="cursor:pointer; border-bottom:1px dashed var(--text-muted);" onclick="window.editCustomTaskTitle('${chId}')" title="클릭하여 스케줄 제목 수정">✏️ ${titleStr}</span>` : 
                                     titleStr;
-                                return `<span style="font-weight: 700; font-size: 1.05rem; color: var(--text-main); display: flex; flex-direction: column; gap: 0.3rem;">${prefix}${titleHtml} ${bkmk}</span>`;
+                                return `<span style="font-weight: 700; font-size: 1.1rem; color: var(--text-main); display: flex; align-items: center;">${prefix}${titleHtml} ${bkmk}</span>`;
                             })()}
                         </div>
-                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.6rem;">
-                            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">⏰ ${t.allocated.toFixed(1)}시간</span>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <button class="btn btn-primary" style="background: ${color}; color: #1e293b; padding: 0.5rem 1rem;" onclick="window.appComplete('${chId}', ${t.allocated}, ${t.isReview ? 'true' : 'false'})">✅ 완료</button>
-                                <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="window.appPartial('${chId}', ${t.allocated})">⏳ 진행중</button>
+                        <div style="display: flex; flex-direction: row; align-items: center; gap: 1rem;">
+                            <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600; font-family: monospace;">${t.allocated.toFixed(1)}H</span>
+                            <div style="display: flex; gap: 0.4rem;">
+                                <button style="background: white; border: 2px solid ${color}; color: ${color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 1.1rem;" onmouseover="this.style.background='${color}11'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.transform='scale(1)'" onclick="window.appComplete('${chId}', ${t.allocated}, ${t.isReview ? 'true' : 'false'})" title="완료">
+                                    ✓
+                                </button>
+                                <button style="background: white; border: 2px dashed var(--text-muted); color: var(--text-muted); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 1rem;" onmouseover="this.style.background='#f8fafc'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.transform='scale(1)'" onclick="window.appPartial('${chId}', ${t.allocated})" title="진행중">
+                                    △
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -362,24 +370,24 @@ function initDashboard() {
                 let recommendedFull = (targetTotalWork / 330).toFixed(1);
                 
                 pacingWarningHtml = `
-                    <div class="glass-panel" style="margin-bottom: 2rem; padding: 1.5rem; border-left: 6px solid #ef4444; border-radius: 16px; background: rgba(254, 226, 226, 0.5);">
+                    <div style="margin-bottom: 2rem; padding: 1.5rem; border: 2px dashed #fca5a5; border-radius: 8px; background: #fff1f2;">
                         <div style="display: flex; gap: 0.8rem; align-items: flex-start;">
                             <div style="font-size: 1.8rem;">🚨</div>
                             <div style="display: flex; flex-direction: column; gap: 0.8rem; flex: 1;">
-                                <h3 style="color: #b91c1c; margin: 0; font-size: 1.15rem;">[AI 스케줄 긴급 진단] 수험 페이스 상향 권고</h3>
+                                <h3 style="color: #b91c1c; margin: 0; font-size: 1.15rem; font-weight: 800;">[AI 스케줄 긴급 진단] 페이스 상향 권고</h3>
                                 <p style="color: #991b1b; margin: 0; font-size: 0.95rem; line-height: 1.5;">
                                     현재 일일 <b>${currentDaily}시간</b> 페이스로는 1년 내 합격 최소선인 <b>'전 과목 3회독'</b>(총 ${Math.round(targetTotalWork)}시간 소요 예정) 달성이 시기적으로 어렵습니다.
                                 </p>
-                                <div style="padding: 0.8rem 1rem; background: rgba(255,255,255,0.7); border-radius: 8px; border: 1px solid #fecaca; margin-top: 0.2rem;">
-                                    <p style="color: #b91c1c; margin: 0; font-size: 0.95rem; line-height: 1.6; font-weight: 600;">💡 AI 맞춤형 행동 지침:</p>
+                                <div style="padding: 0.8rem 1rem; background: white; border-radius: 4px; border: 1px solid #fecaca; margin-top: 0.2rem;">
+                                    <p style="color: #b91c1c; margin: 0; font-size: 0.95rem; line-height: 1.6; font-weight: 700;">💡 AI 맞춤형 행동 지침:</p>
                                     <ul style="color: #991b1b; margin: 0.5rem 0 0 0; padding-left: 1.2rem; font-size: 0.9rem; line-height: 1.5;">
-                                        <li>3회독 목표 지표를 지키려면 **남은 일수를 감안한** <b>주당 평균 ${Math.round(weeklyPaceNeeded)}시간</b>의 거시적 학습이 필수적입니다. 현재 계획 대비 <b>매주 최소 ${neededWeeklyBoost}시간</b>을 더 확보하십시오. (복습 시간 포함)</li>
+                                        <li>3회독 목표 지표를 지키려면 <b>주당 평균 ${Math.round(weeklyPaceNeeded)}시간</b> 수준의 거시적 학습이 필수적입니다. 매주 최소 <b>${neededWeeklyBoost}시간</b>을 더 확보하십시오.</li>
                                         <li>${targetChaptersText}</li>
                                     </ul>
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
-                                    <button class="btn btn-primary" style="background: #ef4444; color: white; padding: 0.6rem 1rem; flex: 1;" onclick="window.openPacingFlexModal()">🗓️ 내 일정에 맞춰 방금 추천받은 시간 유연하게 추가 배분하기</button>
-                                    <button class="btn btn-secondary" style="border: none; background: transparent; color: var(--text-muted); text-decoration: underline;" onclick="window.ignoreAIPacing()">보류 (현재 스케줄러 유지)</button>
+                                    <button class="btn btn-primary" style="background: #ef4444; color: white; padding: 0.6rem 1rem; flex: 1; border-radius:4px;" onclick="window.openPacingFlexModal()">🗓️ 유연하게 추가 배분하기</button>
+                                    <button class="btn btn-secondary" style="border: none; background: transparent; color: #b91c1c; text-decoration: underline;" onclick="window.ignoreAIPacing()">보류 (현재 유지)</button>
                                 </div>
                             </div>
                         </div>
@@ -396,34 +404,41 @@ function initDashboard() {
                     let prefix = t.isReview ? '[복습] ' : '';
                     let chId = t.chapter.id ? t.chapter.id.toString() : 'unknown';
                     return `
-                        <div style="background: rgba(255,255,255,0.7); border: 1px solid ${color}66; border-radius: 8px; padding: 0.8rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="padding: 0.8rem 1rem; border-bottom: 1px dashed var(--glass-border); display: flex; justify-content: space-between; align-items: center; background: white;">
                             <div style="display: flex; flex-direction: column;">
-                                <span style="font-size: 0.75rem; color: ${color}; font-weight: 700;">${subj.name}</span>
-                                <span style="font-size: 0.9rem; font-weight: 600; color: #78350f;">${prefix}${t.chapter.title}</span>
+                                <span style="font-size: 0.75rem; color: ${color}; font-weight: 800; letter-spacing: 0.5px;">${subj.name}</span>
+                                <span style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); line-height: 1.4;">${prefix}<del style="color:var(--text-muted);">${t.chapter.title}</del></span>
                             </div>
-                            <button class="btn btn-primary" style="background: ${color}; color: white; padding: 0.4rem 0.8rem; font-size: 0.8rem; height: fit-content;" onclick="window.appCompletePast('${chId}', '${t.pastDateStr}', ${t.allocated})">
-                                어제 완료 ✅
+                            <button class="btn btn-secondary" style="border: 1px solid ${color}; color: ${color}; padding: 0.4rem 0.8rem; font-size: 0.85rem; font-weight: 800; height: fit-content; border-radius: 4px; background: white;" onmouseover="this.style.background='${color}11'" onmouseout="this.style.background='white'" onclick="window.appCompletePast('${chId}', '${t.pastDateStr}', ${t.allocated})">
+                                어제 완료 ✓
                             </button>
                         </div>
                     `;
                 }).join('');
                 
                 missedHtml = `
-                    <div class="glass-panel" style="margin-bottom: 1.5rem; padding: 1.2rem; border-left: 5px solid #d97706; border-radius: 12px; background: rgba(253, 230, 138, 0.3);">
-                        <h3 style="color: #b45309; margin: 0 0 0.5rem 0; font-size: 1.1rem;">⚠️ 어제 못한 일정 (점검)</h3>
-                        <p style="font-size: 0.85rem; color: #92400e; margin: 0 0 1rem 0;">어제 넘겨버린 스케줄입니다. 실제로 공부하셨다면 바로 체크해주세요. 미완료 상태여서 현재 오늘 이후 스케줄로 자동 이월되고 있습니다.</p>
-                        ${mCards}
+                    <div style="margin-top: 3rem; margin-bottom: 1.5rem; border-top: 2px solid #fcd34d; padding-top: 1.5rem;">
+                        <h3 style="color: #d97706; margin: 0 0 0.5rem 0; font-size: 1.1rem; letter-spacing: -0.5px;">⚠️ 어제 못한 일정 (미완료 스케줄)</h3>
+                        <p style="font-size: 0.85rem; color: #b45309; margin: 0 0 1rem 0;">이미 넘어간 스케줄입니다. 별도로 어제 공부하셨다면 아래에서 완료로 체크해주세요.</p>
+                        <div style="border: 1px solid var(--glass-border); border-bottom: none; border-radius: 4px; overflow: hidden;">
+                            ${mCards}
+                        </div>
                     </div>
                 `;
             }
 
             html += `
                 ${pacingWarningHtml}
-                ${missedHtml}
-                <h2 style="margin-bottom: 1.5rem; color: var(--text-main); font-size: 1.3rem;">📅 오늘 (${displayDate}) 할 일</h2>
-                <div style="display: flex; flex-direction: column;">
-                    ${cardsHtml}
+                <div style="flex:1;">
+                    <div class="glass-panel" style="padding: 2rem;">
+                        <h2 style="margin-bottom: 1.5rem; color: var(--text-main); font-size: 1.5rem; letter-spacing:-0.4px;">오늘 (${displayDate}) 할 일</h2>
+                        <div style="display: flex; flex-direction: column; border-top: 1px solid var(--text-main);">
+                            ${cardsHtml}
+                        </div>
+                    </div>
                 </div>
+                ${missedHtml}
+                
                 <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: space-between; flex-wrap: wrap;">
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                         <button class="btn btn-primary glass-panel" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid #bfdbfe;" onclick="window.appCompleteAhead()">🔥 초과 달성 기록</button>
