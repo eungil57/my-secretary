@@ -503,9 +503,9 @@ window.StudyEngine = class {
 
             let sanity = 0;
             for (let sub of todaysSubjects) {
-                // If we already finished some tasks today (e.g. manually before refresh), subtract from bucket
-                if (dateStr === todayStrForCount && completedTodayPerSubj[sub]) {
-                    subjectBuckets[sub] = Math.max(0, subjectBuckets[sub] - (completedTodayPerSubj[sub] * 1.5));
+                // If we already finished some tasks today (e.g. manually before refresh), do NOT spawn new chapters for this subject today! (Clock-out Mode)
+                if (dateStr === todayStrForCount && completedTodayPerSubj[sub] > 0) {
+                    subjectBuckets[sub] = 0;
                 }
 
                 // Use progressEffectiveHours instead of effectiveBaseHours to leave room for reviews
