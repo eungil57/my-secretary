@@ -208,10 +208,22 @@ function initDashboard() {
                     let currentDayTs = new Date(todayStrLocal + 'T00:00:00').getTime();
                     let actualDiffDays = Math.round((currentDayTs - compTime) / (1000 * 3600 * 24));
                     
-                    if (actualDiffDays > t.reviewDay) {
-                        missedTasks.push({ ...t, pastDateStr: getPastDateStr(actualDiffDays - t.reviewDay) });
-                        continue;
+                    let isTodaySubject = todaysSubjects.length === 0 || todaysSubjects.includes(t.subjectId);
+                    
+                    if (isTodaySubject) {
+                        // Review matches today's subject -> active task
+                        activeTasks.push(t);
+                    } else {
+                        // Not today's subject
+                        if (actualDiffDays > t.reviewDay) {
+                            // Missed from a past day -> missed task
+                            missedTasks.push({ ...t, pastDateStr: getPastDateStr(actualDiffDays - t.reviewDay) });
+                        } else {
+                            // Perfectly due today, but wrong subject -> HIDE it (will roll over to its own day)
+                            // Do nothing (continue)
+                        }
                     }
+                    continue;
                 }
             }
             activeTasks.push(t);
