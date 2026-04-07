@@ -208,17 +208,23 @@ function initDashboard() {
                     let currentDayTs = new Date(todayStrLocal + 'T00:00:00').getTime();
                     let actualDiffDays = Math.round((currentDayTs - compTime) / (1000 * 3600 * 24));
                     
-                    if (actualDiffDays > t.reviewDay) {
-                        missedTasks.push({ ...t, pastDateStr: getPastDateStr(actualDiffDays - t.reviewDay) });
-                        continue;
-                    }
+                    let isTodaySubject = todaysSubjects.length === 0 || todaysSubjects.includes(t.subjectId);
                     
-                    if (actualDiffDays == t.reviewDay) {
-                        if (todaysSubjects.length > 0 && !todaysSubjects.includes(t.subjectId)) {
-                            // Suppress review from today's schedule. Tomorrow, it will naturally appear in missedTasks.
-                            continue;
+                    if (isTodaySubject) {
+                        // If it's a review for today's subjects (even if overdue mathematically), 
+                        // it should just be a normal 'activeTask' for today.
+                        activeTasks.push(t);
+                    } else {
+                        // Not today's subject
+                        if (actualDiffDays > t.reviewDay) {
+                            // Overdue from a past day -> goes to missedTasks
+                            missedTasks.push({ ...t, pastDateStr: getPastDateStr(actualDiffDays - t.reviewDay) });
+                        } else {
+                            // Exactly due today, but not today's subject -> HIDE it (will roll over)
+                            // Do nothing (continue)
                         }
                     }
+                    continue; // Skip the default activeTasks.push(t) below since we handled it here
                 }
             }
             activeTasks.push(t);
