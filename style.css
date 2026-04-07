@@ -1,18 +1,22 @@
 :root {
-    --bg-main: #d3ebe3;
-    --bg-variant: #e0f2f1;
-    --paper-bg: #ffffff;
-    --glass-bg: #ffffff;
-    --glass-border: #b2dfdb;
+    --color-cream: #F8F6F0;
+    --color-sage: #D2E0D1;
+    --color-forest: #2E5339;
+
+    --bg-main: var(--color-cream);
+    --bg-variant: var(--color-cream);
+    --paper-bg: var(--color-sage);
+    --glass-bg: var(--color-cream);
+    --glass-border: #B5C9B3;
     
-    --color-primary: #80cbc4; 
-    --color-primary-glow: rgba(128, 203, 196, 0.3);
-    --color-danger: #f8bbd0; 
-    --color-success: #b39ddb; 
-    --color-warning: #ffe082; 
+    --color-primary: var(--color-forest); 
+    --color-primary-glow: rgba(46, 83, 57, 0.2);
+    --color-danger: #ea8a8a; 
+    --color-success: #7d967e; 
+    --color-warning: #eab308; 
     
-    --text-main: #37474f;
-    --text-muted: #90a4ae;
+    --text-main: #1F3624;
+    --text-muted: #5B7563;
     
     --font-main: 'Pretendard', "Apple SD Gothic Neo", sans-serif;
 }
@@ -31,9 +35,8 @@ body {
 
 .glass-panel {
     background: var(--paper-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: 4px;
-    box-shadow: 3px 3px 0px rgba(128, 203, 196, 0.2);
+    border: none;
+    border-radius: 12px;
 }
 
 .sidebar { width: 280px; padding: 2.5rem 1.5rem; display: flex; flex-direction: column; }

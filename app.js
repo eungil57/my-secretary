@@ -370,24 +370,24 @@ function initDashboard() {
                 let recommendedFull = (targetTotalWork / 330).toFixed(1);
                 
                 pacingWarningHtml = `
-                    <div style="margin-bottom: 2rem; padding: 1.5rem; border: 2px dashed #fca5a5; border-radius: 8px; background: #fff1f2;">
+                    <div style="margin-bottom: 2rem; padding: 1.5rem; border: 2px dashed var(--color-forest); border-radius: 12px; background: rgba(255,255,255,0.5);">
                         <div style="display: flex; gap: 0.8rem; align-items: flex-start;">
-                            <div style="font-size: 1.8rem;">🚨</div>
+                            <div style="font-size: 1.8rem;">🌿</div>
                             <div style="display: flex; flex-direction: column; gap: 0.8rem; flex: 1;">
-                                <h3 style="color: #b91c1c; margin: 0; font-size: 1.15rem; font-weight: 800;">[AI 스케줄 긴급 진단] 페이스 상향 권고</h3>
-                                <p style="color: #991b1b; margin: 0; font-size: 0.95rem; line-height: 1.5;">
+                                <h3 style="color: var(--color-forest); margin: 0; font-size: 1.15rem; font-weight: 800;">[AI 스케줄 긴급 진단] 페이스 상향 권고</h3>
+                                <p style="color: var(--text-muted); margin: 0; font-size: 0.95rem; line-height: 1.5;">
                                     현재 일일 <b>${currentDaily}시간</b> 페이스로는 1년 내 합격 최소선인 <b>'전 과목 3회독'</b>(총 ${Math.round(targetTotalWork)}시간 소요 예정) 달성이 시기적으로 어렵습니다.
                                 </p>
-                                <div style="padding: 0.8rem 1rem; background: white; border-radius: 4px; border: 1px solid #fecaca; margin-top: 0.2rem;">
-                                    <p style="color: #b91c1c; margin: 0; font-size: 0.95rem; line-height: 1.6; font-weight: 700;">💡 AI 맞춤형 행동 지침:</p>
-                                    <ul style="color: #991b1b; margin: 0.5rem 0 0 0; padding-left: 1.2rem; font-size: 0.9rem; line-height: 1.5;">
+                                <div style="padding: 0.8rem 1rem; background: white; border-radius: 8px; border: 1px solid var(--glass-border); margin-top: 0.2rem;">
+                                    <p style="color: var(--color-forest); margin: 0; font-size: 0.95rem; line-height: 1.6; font-weight: 700;">💡 AI 맞춤형 행동 지침:</p>
+                                    <ul style="color: var(--text-main); margin: 0.5rem 0 0 0; padding-left: 1.2rem; font-size: 0.9rem; line-height: 1.5;">
                                         <li>3회독 목표 지표를 지키려면 <b>주당 평균 ${Math.round(weeklyPaceNeeded)}시간</b> 수준의 거시적 학습이 필수적입니다. 매주 최소 <b>${neededWeeklyBoost}시간</b>을 더 확보하십시오.</li>
                                         <li>${targetChaptersText}</li>
                                     </ul>
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
-                                    <button class="btn btn-primary" style="background: #ef4444; color: white; padding: 0.6rem 1rem; flex: 1; border-radius:4px;" onclick="window.openPacingFlexModal()">🗓️ 유연하게 추가 배분하기</button>
-                                    <button class="btn btn-secondary" style="border: none; background: transparent; color: #b91c1c; text-decoration: underline;" onclick="window.ignoreAIPacing()">보류 (현재 유지)</button>
+                                    <button class="btn btn-primary" style="padding: 0.6rem 1rem; flex: 1; border-radius:8px;" onclick="window.openPacingFlexModal()">🗓️ 유연하게 추가 배분하기</button>
+                                    <button class="btn btn-secondary" style="border: none; background: transparent; color: var(--text-muted); text-decoration: underline;" onclick="window.ignoreAIPacing()">보류 (현재 유지)</button>
                                 </div>
                             </div>
                         </div>
@@ -417,12 +417,12 @@ function initDashboard() {
                 }).join('');
                 
                 missedHtml = `
-                    <div class="glass-panel" style="margin-top: 3rem; margin-bottom: 1.5rem; border-top: 4px solid #d97706; padding: 1.5rem; background-size: 20px 20px; background-image: linear-gradient(to right, rgba(128, 203, 196, 0.25) 1px, transparent 1px), linear-gradient(to bottom, rgba(128, 203, 196, 0.25) 1px, transparent 1px);">
-                        <div style="background: rgba(255,255,255,0.85); padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem;">
-                            <h3 style="color: #d97706; margin: 0 0 0.2rem 0; font-size: 1.1rem; letter-spacing: -0.5px;">⚠️ 어제 못한 일정 (미완료 스케줄)</h3>
-                            <p style="font-size: 0.85rem; color: #b45309; margin: 0;">이미 넘어간 스케줄입니다. 별도로 어제 공부하셨다면 아래에서 체크해주세요.</p>
+                    <div class="glass-panel" style="margin-top: 3rem; margin-bottom: 1.5rem; padding: 1.5rem; background-size: 20px 20px; background-image: linear-gradient(to right, rgba(46, 83, 57, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(46, 83, 57, 0.1) 1px, transparent 1px);">
+                        <div style="background: rgba(255,255,255,0.7); padding: 0.5rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid var(--color-forest);">
+                            <h3 style="color: var(--color-forest); margin: 0 0 0.2rem 0; font-size: 1.1rem; letter-spacing: -0.5px;">⚠️ 어제 못한 복습 (점검)</h3>
+                            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">이미 넘어간 일정입니다. 별도로 어제 공부하셨다면 아래에서 체크해주세요.</p>
                         </div>
-                        <div style="border: 1px solid var(--glass-border); border-bottom: none; border-radius: 4px; overflow: hidden; box-shadow: 2px 2px 0px rgba(0,0,0,0.05);">
+                        <div style="border: 1px solid var(--glass-border); border-bottom: none; border-radius: 8px; overflow: hidden; background: white;">
                             ${mCards}
                         </div>
                     </div>
@@ -432,9 +432,9 @@ function initDashboard() {
             html += `
                 ${pacingWarningHtml}
                 <div style="flex:1;">
-                    <div class="glass-panel" style="padding: 2rem;">
-                        <h2 style="margin-bottom: 1.5rem; color: var(--text-main); font-size: 1.5rem; letter-spacing:-0.4px;">오늘 (${displayDate}) 할 일</h2>
-                        <div style="display: flex; flex-direction: column; border-top: 1px solid var(--text-main);">
+                    <div class="glass-panel" style="padding: 2.5rem 2rem;">
+                        <h2 style="margin-bottom: 2rem; color: var(--color-forest); font-size: 1.6rem; letter-spacing:-0.4px; font-family:'Apple SD Gothic Neo', serif;">Today's Schedule</h2>
+                        <div style="display: flex; flex-direction: column; border-top: 1px solid var(--glass-border);">
                             ${cardsHtml}
                         </div>
                     </div>
