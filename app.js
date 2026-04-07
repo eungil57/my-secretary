@@ -158,13 +158,64 @@ function initDashboard() {
         }
 
     if (viewType === 'daily') {
-        let tasks = engine.getScheduleForDate(todayStr);
         let pacingWarningHtml = '';
         let cardsHtml = '';
         let skipBtnText = '';
         let displayDate = '';
+        let todayStrLocal = engine.getTodayStr();
         
-        if (tasks.length === 0) {
+        let allTodayTasks = engine.getScheduleForDate(todayStr) || [];
+        let activeTasks = [];
+        let missedTasks = [];
+
+        function getPastDateStr(daysAgo) {
+            let d = new Date(todayStrLocal);
+            d.setDate(d.getDate() - daysAgo);
+            let y = d.getFullYear();
+            let m = String(d.getMonth() + 1).padStart(2, '0');
+            let dd = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${dd}`;
+        }
+
+        for (let t of allTodayTasks) {
+            if (t.isReview && t.reviewDay !== '지정') {
+                let p = engine.state.progress[t.chapter.id];
+                if (p && p.status === 'completed' && p.completedAt) {
+                    let compTime = new Date(p.completedAt + 'T00:00:00').getTime();
+                    let currentDayTs = new Date(todayStrLocal).getTime();
+                    let actualDiffDays = Math.round((currentDayTs - compTime) / (1000 * 3600 * 24));
+                    if (actualDiffDays > t.reviewDay) {
+                        missedTasks.push({ ...t, pastDateStr: getPastDateStr(actualDiffDays - t.reviewDay) });
+                        continue;
+                    }
+                }
+            }
+            activeTasks.push(t);
+        }
+
+        let overrides = engine.state.settings.taskDateOverrides || {};
+        for (let id in overrides) {
+            let oDate = overrides[id];
+            if (oDate < todayStrLocal) {
+                let subjInfo = findSubjectOfChapter(id);
+                if (!subjInfo) continue;
+                if (!missedTasks.find(m => m.chapter && String(m.chapter.id) === String(id))) {
+                    if (engine.isCompleted(id)) {
+                        let p = engine.state.progress[id];
+                        let fbMult = (p && p.feedback === 'hard' ? 1.5 : (p && p.feedback === 'easy' ? 0.7 : 1));
+                        missedTasks.push({
+                            subjectId: subjInfo.subjKey, chapter: subjInfo.chapter, allocated: 0.5 * fbMult, isReview: true, reviewDay: '지정', pastDateStr: oDate
+                        });
+                    } else {
+                        missedTasks.push({
+                            subjectId: subjInfo.subjKey, chapter: subjInfo.chapter, allocated: 2.0, isReview: false, pastDateStr: oDate
+                        });
+                    }
+                }
+            }
+        }
+        
+        if (activeTasks.length === 0 && missedTasks.length === 0) {
             html += `
                 <div class="glass-panel" style="padding: 3rem; text-align: center; display: flex; flex-direction: column; align-items: center;">
                     <h2>🎉 오늘의 일정(또는 주말)이 없습니다!</h2>
@@ -175,7 +226,7 @@ function initDashboard() {
                 </div>
             `;
         } else {
-            cardsHtml = tasks.map(t => {
+            cardsHtml = activeTasks.map(t => {
                 let color = getPastelColor(t.subjectId);
                 let subj = window.subjectData[t.subjectId];
                 if (!subj || !t.chapter) return '';
@@ -337,29 +388,6 @@ function initDashboard() {
             }
 
             let missedHtml = '';
-            function getPastDateStr(daysAgo) {
-                let d = new Date(todayStrLocal);
-                d.setDate(d.getDate() - daysAgo);
-                let y = d.getFullYear();
-                let m = String(d.getMonth() + 1).padStart(2, '0');
-                let dd = String(d.getDate()).padStart(2, '0');
-                return `${y}-${m}-${dd}`;
-            }
-            let yStr = getPastDateStr(1);
-            let yTasks = engine.getScheduleForDate(yStr) || [];
-            let missedTasks = [];
-            for (let t of yTasks) {
-                if (!t.isReview) {
-                    if (!engine.isCompleted(t.chapter.id)) {
-                        missedTasks.push(t);
-                    }
-                } else {
-                    let p = engine.state.progress[t.chapter.id];
-                    if (p && p.status === 'completed' && p.completedAt < yStr) {
-                        missedTasks.push(t);
-                    }
-                }
-            }
             if (missedTasks.length > 0) {
                 let mCards = missedTasks.map(t => {
                     let color = getPastelColor(t.subjectId);
@@ -373,7 +401,7 @@ function initDashboard() {
                                 <span style="font-size: 0.75rem; color: ${color}; font-weight: 700;">${subj.name}</span>
                                 <span style="font-size: 0.9rem; font-weight: 600; color: #78350f;">${prefix}${t.chapter.title}</span>
                             </div>
-                            <button class="btn btn-primary" style="background: ${color}; color: #1e293b; padding: 0.4rem 0.8rem; font-size: 0.8rem; height: fit-content;" onclick="window.appCompletePast('${chId}', '${yStr}', ${t.allocated})">
+                            <button class="btn btn-primary" style="background: ${color}; color: white; padding: 0.4rem 0.8rem; font-size: 0.8rem; height: fit-content;" onclick="window.appCompletePast('${chId}', '${t.pastDateStr}', ${t.allocated})">
                                 어제 완료 ✅
                             </button>
                         </div>
