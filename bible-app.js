@@ -328,7 +328,7 @@ window.initBibleDashboard = () => {
 function renderBibleTable(type) {
     let data = window.bibleData.filter(b => b.type === type);
     
-    let html = `<div class="bible-table-container" style="padding: 2rem; border-radius: 16px; background: #ffffff; border: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 1.5rem; overflow-x: auto; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">`;
+    let html = `<div class="bible-table-container" style="padding: 2rem; border-radius: 16px; background: #faf8f5; border: 1px solid #f0e6d2; display: flex; flex-direction: column; gap: 1.5rem; overflow-x: auto; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">`;
     
     data.forEach(b => {
         let chaptersHtml = '';
@@ -340,7 +340,7 @@ function renderBibleTable(type) {
             
             let bg = read ? 'var(--color-forest)' : '#ffffff';
             let color = read ? '#ffffff' : 'var(--text-muted)';
-            let border = read ? '1px solid var(--color-forest)' : '1px solid var(--glass-border)';
+            let border = read ? '1px solid var(--color-forest)' : '1px solid #e8decb';
             let fw = read ? '800' : '600';
             let shadow = read ? '0 3px 6px rgba(46, 83, 57, 0.4)' : '0 1px 3px rgba(0,0,0,0.03)';
             
@@ -352,7 +352,7 @@ function renderBibleTable(type) {
         
         html += `
             <div style="display: flex; gap: 1rem; align-items: stretch; width: 100%;">
-                <div style="flex-shrink: 0; width: 140px; max-width: 140px; background: #ffffff; border: 1px solid var(--color-forest); border-radius: 12px; padding: 1.2rem 1rem; display: flex; align-items: flex-start; justify-content: flex-start; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#ffffff'" onclick="window.promptBibleReader('${b.id}')">
+                <div style="flex-shrink: 0; width: 140px; max-width: 140px; background: #ebdcc9; border-radius: 12px; padding: 1.2rem 1rem; display: flex; align-items: flex-start; justify-content: flex-start; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#e3d2bd'" onmouseout="this.style.background='#ebdcc9'" onclick="window.promptBibleReader('${b.id}')">
                     <span style="font-weight: 800; font-size: 0.95rem; color: var(--color-forest); text-transform: uppercase; letter-spacing: 0.5px;">${b.name}</span>
                 </div>
                 <div style="flex: 1; background: #ffffff; border-radius: 12px; padding: 1.2rem 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; align-content: flex-start; box-shadow: 0 4px 10px rgba(0,0,0,0.02); min-height: 70px;">

@@ -255,11 +255,6 @@ function initDashboard() {
                         <div style="display: flex; flex-direction: row; align-items: center; gap: 1rem;">
                             <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600; font-family: monospace;">${t.allocated.toFixed(1)}H</span>
                             <div style="display: flex; gap: 0.4rem; align-items: center;">
-                                ${t.isReview ? `
-                                <button style="background: white; border: 1px solid #cbd5e1; color: var(--text-muted); padding: 0.3rem 0.5rem; border-radius: 8px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; white-space: nowrap; margin-right: 0.2rem;" onmouseover="this.style.background='#f1f5f9';" onmouseout="this.style.background='white';" onclick="window.appSkipToYesterday('${chId}')" title="이 복습 일정을 '어제 못 한 일정'으로 내립니다">
-                                    ⬇️ 어제로
-                                </button>
-                                ` : ''}
                                 <button style="background: white; border: 2px solid ${color}; color: ${color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 1.1rem;" onmouseover="this.style.background='${color}11'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.transform='scale(1)'" onclick="window.appComplete('${chId}', ${t.allocated}, ${t.isReview ? 'true' : 'false'})" title="완료">
                                     ✓
                                 </button>
