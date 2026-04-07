@@ -188,7 +188,7 @@ function initDashboard() {
                 let p = engine.state.progress[t.chapter.id];
                 if (p && p.status === 'completed' && p.completedAt) {
                     let compTime = new Date(p.completedAt + 'T00:00:00').getTime();
-                    let currentDayTs = new Date(todayStrLocal).getTime();
+                    let currentDayTs = new Date(todayStrLocal + 'T00:00:00').getTime();
                     let actualDiffDays = Math.round((currentDayTs - compTime) / (1000 * 3600 * 24));
                     if (actualDiffDays > t.reviewDay) {
                         missedTasks.push({ ...t, pastDateStr: getPastDateStr(actualDiffDays - t.reviewDay) });
@@ -417,10 +417,12 @@ function initDashboard() {
                 }).join('');
                 
                 missedHtml = `
-                    <div style="margin-top: 3rem; margin-bottom: 1.5rem; border-top: 2px solid #fcd34d; padding-top: 1.5rem;">
-                        <h3 style="color: #d97706; margin: 0 0 0.5rem 0; font-size: 1.1rem; letter-spacing: -0.5px;">⚠️ 어제 못한 일정 (미완료 스케줄)</h3>
-                        <p style="font-size: 0.85rem; color: #b45309; margin: 0 0 1rem 0;">이미 넘어간 스케줄입니다. 별도로 어제 공부하셨다면 아래에서 완료로 체크해주세요.</p>
-                        <div style="border: 1px solid var(--glass-border); border-bottom: none; border-radius: 4px; overflow: hidden;">
+                    <div class="glass-panel" style="margin-top: 3rem; margin-bottom: 1.5rem; border-top: 4px solid #d97706; padding: 1.5rem; background-size: 20px 20px; background-image: linear-gradient(to right, rgba(128, 203, 196, 0.25) 1px, transparent 1px), linear-gradient(to bottom, rgba(128, 203, 196, 0.25) 1px, transparent 1px);">
+                        <div style="background: rgba(255,255,255,0.85); padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem;">
+                            <h3 style="color: #d97706; margin: 0 0 0.2rem 0; font-size: 1.1rem; letter-spacing: -0.5px;">⚠️ 어제 못한 일정 (미완료 스케줄)</h3>
+                            <p style="font-size: 0.85rem; color: #b45309; margin: 0;">이미 넘어간 스케줄입니다. 별도로 어제 공부하셨다면 아래에서 체크해주세요.</p>
+                        </div>
+                        <div style="border: 1px solid var(--glass-border); border-bottom: none; border-radius: 4px; overflow: hidden; box-shadow: 2px 2px 0px rgba(0,0,0,0.05);">
                             ${mCards}
                         </div>
                     </div>
