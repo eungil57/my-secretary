@@ -176,7 +176,7 @@ function initDashboard() {
         let allTodayTasks = engine.getScheduleForDate(todayStr) || [];
         let activeTasks = [];
         let missedTasks = [];
-
+        
         function getPastDateStr(daysAgo) {
             let d = new Date(todayStrLocal);
             d.setDate(d.getDate() - daysAgo);
@@ -187,6 +187,14 @@ function initDashboard() {
         }
 
         let overrides = engine.state.settings.taskDateOverrides || {};
+        
+        let todaysSubjects = [];
+        
+        for (let t of allTodayTasks) {
+            if (!t.isReview && !todaysSubjects.includes(t.subjectId)) {
+                todaysSubjects.push(t.subjectId);
+            }
+        }
 
         for (let t of allTodayTasks) {
             // If the task has a manual override in the past, DO NOT show it as an active task today.
@@ -199,9 +207,17 @@ function initDashboard() {
                     let compTime = new Date(p.completedAt + 'T00:00:00').getTime();
                     let currentDayTs = new Date(todayStrLocal + 'T00:00:00').getTime();
                     let actualDiffDays = Math.round((currentDayTs - compTime) / (1000 * 3600 * 24));
+                    
                     if (actualDiffDays > t.reviewDay) {
                         missedTasks.push({ ...t, pastDateStr: getPastDateStr(actualDiffDays - t.reviewDay) });
                         continue;
+                    }
+                    
+                    if (actualDiffDays == t.reviewDay) {
+                        if (todaysSubjects.length > 0 && !todaysSubjects.includes(t.subjectId)) {
+                            // Suppress review from today's schedule. Tomorrow, it will naturally appear in missedTasks.
+                            continue;
+                        }
                     }
                 }
             }

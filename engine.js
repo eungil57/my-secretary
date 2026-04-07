@@ -385,16 +385,11 @@ window.StudyEngine = class {
                     }
                     
                     // Prioritize reviews for subjects we are actually studying progress for today
-                    // USER REQUEST FIX: NEVER show reviews for subjects that are NOT being studied today!
-                    if (todaysSubjects.length > 0) {
-                        eligibleSubjs = eligibleSubjs.filter(s => todaysSubjects.includes(s));
-                    } else {
-                        eligibleSubjs.sort((a, b) => {
-                            let aInToday = todaysSubjects.includes(a) ? 1 : 0;
-                            let bInToday = todaysSubjects.includes(b) ? 1 : 0;
-                            return bInToday - aInToday;
-                        });
-                    }
+                    eligibleSubjs.sort((a, b) => {
+                        let aInToday = todaysSubjects.includes(a) ? 1 : 0;
+                        let bInToday = todaysSubjects.includes(b) ? 1 : 0;
+                        return bInToday - aInToday;
+                    });
                     
                     for (let subjKey of eligibleSubjs) {
                         let subj = window.subjectData[subjKey];
