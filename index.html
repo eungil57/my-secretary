@@ -8,23 +8,37 @@
     <!-- Fonts -->
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.6/dist/web/static/pretendard.css" />
     <!-- Local CSS -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=23">
     <!-- Application Logic -->
-    <script src="data.js?v=21"></script>
-    <script src="engine.js?v=21"></script>
-    <script src="app.js?v=21"></script>
+    <script src="data.js?v=23"></script>
+    <script src="engine.js?v=23"></script>
+    <script src="app.js?v=23"></script>
     <!-- Bible Data and App -->
-    <script src="bible-data.js?v=21"></script>
-    <script src="bible-app.js?v=21"></script>
+    <script src="bible-data.js?v=23"></script>
+    <script src="bible-app.js?v=23"></script>
     <!-- Kinder English App -->
-    <script src="english-data.js?v=21"></script>
-    <script src="english-app.js?v=21"></script>
+    <script src="english-data.js?v=23"></script>
+    <script src="english-app.js?v=23"></script>
     <!-- Firebase Sync -->
-    <script type="module" src="firebase-config.js?v=21"></script>
+    <script type="module" src="firebase-config.js?v=23"></script>
+
+    <style>
+        /* Scoped CSS to revert Bible Tracker to its original Theme (Blue/White) */
+        #bible-view-section {
+            --color-primary: #3b82f6;
+            --color-primary-glow: rgba(59, 130, 246, 0.2);
+            --bg-main: #ffffff;
+            --bg-variant: #f8fafc;
+            --paper-bg: #ffffff;
+            --glass-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+    </style>
 </head>
 <body>
-    <!-- Version Fixer (v21) -->
-    <div style="position:fixed; top:2px; right:2px; font-size:10px; color:#94a3b8; background:rgba(255,255,255,0.7); padding:2px 6px; border-radius:4px; z-index:10000; pointer-events:none;">v21.0</div>
+    <!-- Version Fixer (v23) -->
+    <div style="position:fixed; top:2px; right:2px; font-size:10px; color:#94a3b8; background:rgba(255,255,255,0.7); padding:2px 6px; border-radius:4px; z-index:10000; pointer-events:none;">v23.0</div>
     
     <div id="app">
         <!-- Sidebar Navigation -->
