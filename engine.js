@@ -210,6 +210,7 @@ window.StudyEngine = class {
         let cycle = 0;
 
         let trackingCompleted = {}; 
+        window.__projectedReviewTiers = {};
         
         let activeQueue = ['tax', 'accounting', 'cost_accounting', 'finance'];
 
@@ -409,25 +410,32 @@ window.StudyEngine = class {
                                 let diffTime = currentDayTs - compTime;
                                 let diffDays = Math.round(diffTime / (1000 * 3600 * 24));
                                 
-                                // SMART ROLL-OVER: Trigger if exactly on target, OR if target was missed recently (< 3 days window)
-                                let isDue = reviewDays.some(d => diffDays === d || (diffDays > d && diffDays < d + 3));
-                                
-                                // DIAGNOSTIC HOOK (v18)
-                                if (dateStr === this.getTodayStr() && isDue) {
-                                    if (!window.__rev_debug.includes("Found Due")) window.__rev_debug += " | Found Due: ";
-                                    window.__rev_debug += `${ch.title}(${diffDays}d), `;
+                                // User explicitly requested that reviews MUST only appear when the subject is actively being studied that day.
+                                // If the subject is not active today, we wait (defer the review).
+                                if (!todaysSubjects.includes(subjKey)) {
+                                    continue;
                                 }
 
-                                if (isDue) {
-                                    let fb = p && p.feedback ? p.feedback : 'normal';
-                                    let fbMult = (fb === 'hard' ? 1.5 : (fb === 'easy' ? 0.7 : 1.0));
+                                // Find the highest mathematical review tier that we have passed
+                                let revDaysRev = [...reviewDays].reverse();
+                                let targetTier = revDaysRev.find(d => diffDays >= d);
+                                
+                                if (targetTier) {
+                                    // Ensure we haven't already scheduled this tier (or a higher one) for this chapter in the projection
+                                    if (!window.__projectedReviewTiers) window.__projectedReviewTiers = {};
+                                    let highestScheduledTier = window.__projectedReviewTiers[ch.id] || 0;
                                     
-                                    // Find the correctly matched tier for duration and label
-                                    let revDaysRev = [...reviewDays].reverse();
-                                    let matchedTier = revDaysRev.find(d => diffDays >= d) || 1;
-                                    
-                                    let dur = (reviewTiers[matchedTier] || 0.5) * fbMult;
-                                    availableReviewsToday.push({ subjKey, ch, dur, diffDays: matchedTier });
+                                    if (targetTier > highestScheduledTier) {
+                                        // This is the FIRST time we are evaluating a valid subject day for this required tier!
+                                        // Mark it projected as scheduled.
+                                        window.__projectedReviewTiers[ch.id] = targetTier;
+                                        
+                                        let fb = p && p.feedback ? p.feedback : 'normal';
+                                        let fbMult = (fb === 'hard' ? 1.5 : (fb === 'easy' ? 0.7 : 1.0));
+                                        let dur = (reviewTiers[targetTier] || 0.5) * fbMult;
+                                        
+                                        availableReviewsToday.push({ subjKey, ch, dur, diffDays: targetTier });
+                                    }
                                 }
                             }
                         }
