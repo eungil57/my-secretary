@@ -208,22 +208,10 @@ function initDashboard() {
                     let currentDayTs = new Date(todayStrLocal + 'T00:00:00').getTime();
                     let actualDiffDays = Math.round((currentDayTs - compTime) / (1000 * 3600 * 24));
                     
-                    let isTodaySubject = todaysSubjects.length === 0 || todaysSubjects.includes(t.subjectId);
-                    
-                    if (isTodaySubject) {
-                        // If it's a review for today's subjects, normal 'activeTask'.
-                        activeTasks.push(t);
-                    } else {
-                        // Not today's subject
-                        if (actualDiffDays > t.reviewDay) {
-                            // Mathematically overdue
-                            missedTasks.push({ ...t, pastDateStr: getPastDateStr(actualDiffDays - t.reviewDay) });
-                        } else {
-                            // Perfectly due today, but wrong subject -> HIDE it (will roll over)
-                            // Do nothing (continue)
-                        }
+                    if (actualDiffDays > t.reviewDay) {
+                        missedTasks.push({ ...t, pastDateStr: getPastDateStr(actualDiffDays - t.reviewDay) });
+                        continue;
                     }
-                    continue;
                 }
             }
             activeTasks.push(t);
