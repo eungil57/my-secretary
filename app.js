@@ -219,8 +219,8 @@ function initDashboard() {
                             // Mathematically overdue
                             missedTasks.push({ ...t, pastDateStr: getPastDateStr(actualDiffDays - t.reviewDay) });
                         } else {
-                            // Perfectly due today, but wrong subject. User explicitly wants it visible in the missed/extra box today!
-                            missedTasks.push({ ...t, pastDateStr: "타과목 (보류)" });
+                            // Perfectly due today, but wrong subject -> HIDE it (will roll over)
+                            // Do nothing (continue)
                         }
                     }
                     continue;
