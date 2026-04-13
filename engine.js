@@ -183,12 +183,23 @@ window.StudyEngine = class {
         }
 
         let deferredTasks = {};
+        let needsSave = false;
+        if (this.state.settings.taskDateOverrides) {
+            for (let chId in this.state.settings.taskDateOverrides) {
+                if (this.state.settings.taskDateOverrides[chId] < todayStrForCount) {
+                    if (!this.isCompleted(chId)) {
+                        delete this.state.settings.taskDateOverrides[chId];
+                        needsSave = true;
+                    }
+                }
+            }
+        }
+        
         for (let sub in pending) {
             let regular = [];
             for (let ch of pending[sub]) {
                 let overrideDate = (this.state.settings.taskDateOverrides || {})[ch.id];
                 if (overrideDate) {
-                    if (overrideDate < todayStrForCount) overrideDate = todayStrForCount;
                     if (!deferredTasks[overrideDate]) deferredTasks[overrideDate] = [];
                     deferredTasks[overrideDate].push({ sub, chapter: ch });
                 } else {
@@ -196,6 +207,9 @@ window.StudyEngine = class {
                 }
             }
             pending[sub] = regular;
+        }
+        if (needsSave) {
+            this.saveState(true);
         }
 
         let subjectProgressPct = {};
