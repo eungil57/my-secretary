@@ -198,7 +198,13 @@ function initDashboard() {
 
         for (let t of allTodayTasks) {
             // If the task has a manual override in the past, DO NOT show it as an active task today.
-            if (overrides[t.chapter.id] && overrides[t.chapter.id] < todayStrLocal) {
+            let ov = overrides[t.chapter.id];
+            let isPast = false;
+            if (ov) {
+                if (Array.isArray(ov)) isPast = ov.every(d => d < todayStrLocal);
+                else isPast = ov < todayStrLocal;
+            }
+            if (isPast) {
                 continue;
             }
             if (t.isReview && t.reviewDay !== '지정') {
@@ -211,16 +217,10 @@ function initDashboard() {
                     let isTodaySubject = todaysSubjects.length === 0 || todaysSubjects.includes(t.subjectId);
                     
                     if (isTodaySubject) {
-                        // Review matches today's subject -> active task
                         activeTasks.push(t);
                     } else {
-                        // Not today's subject
                         if (actualDiffDays > t.reviewDay) {
-                            // Missed from a past day -> missed task
                             missedTasks.push({ ...t, pastDateStr: getPastDateStr(actualDiffDays - t.reviewDay) });
-                        } else {
-                            // Perfectly due today, but wrong subject -> HIDE it (will roll over to its own day)
-                            // Do nothing (continue)
                         }
                     }
                     continue;
@@ -230,8 +230,9 @@ function initDashboard() {
         }
 
         for (let id in overrides) {
-            let oDate = overrides[id];
-            if (oDate < todayStrLocal) {
+            let oDateStr = overrides[id];
+            let earliest = Array.isArray(oDateStr) ? oDateStr.find(d => d < todayStrLocal) : (oDateStr < todayStrLocal ? oDateStr : null);
+            if (earliest) {
                 let subjInfo = findSubjectOfChapter(id);
                 if (!subjInfo) continue;
                 if (!missedTasks.find(m => m.chapter && String(m.chapter.id) === String(id))) {
@@ -239,11 +240,11 @@ function initDashboard() {
                         let p = engine.state.progress[id];
                         let fbMult = (p && p.feedback === 'hard' ? 1.5 : (p && p.feedback === 'easy' ? 0.7 : 1));
                         missedTasks.push({
-                            subjectId: subjInfo.subjKey, chapter: subjInfo.chapter, allocated: 0.5 * fbMult, isReview: true, reviewDay: '지정', pastDateStr: oDate
+                            subjectId: subjInfo.subjKey, chapter: subjInfo.chapter, allocated: 0.5 * fbMult, isReview: true, reviewDay: '지정', pastDateStr: earliest
                         });
                     } else {
                         missedTasks.push({
-                            subjectId: subjInfo.subjKey, chapter: subjInfo.chapter, allocated: 2.0, isReview: false, pastDateStr: oDate
+                            subjectId: subjInfo.subjKey, chapter: subjInfo.chapter, allocated: 2.0, isReview: false, pastDateStr: earliest
                         });
                     }
                 }
@@ -555,7 +556,7 @@ function initDashboard() {
                         let titlePart = t.chapter.title;
                         if (titlePart.length > 10) titlePart = titlePart.substring(0, 10) + '...';
                         
-                        return `<div class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}44; cursor: grab; font-weight: 600;" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}')">
+                        return `<div class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}44; cursor: grab; font-weight: 600;" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}')">
                             <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem;" title="${prefix}${subj.name} - ${t.chapter.title}">${prefix}${shortName} - ${titlePart}</span>
                             <span style="flex-shrink:0; margin-left:4px; opacity: 0.8;">${t.allocated.toFixed(1)}h</span>
                         </div>`;
@@ -1632,7 +1633,9 @@ window.cancelComplete = (id) => {
     window.customAlert('✅ 학습 완료 기록이 취소되어 오늘 할 일로 돌아왔습니다.');
 };
 
-window.dragTaskStart = (event, id) => {
+window.dragTaskStart = (event, id, sourceDate) => {
+    let payload = { id: id, sourceDate: sourceDate };
+    event.dataTransfer.setData('application/json', JSON.stringify(payload));
     event.dataTransfer.setData('text/plain', id);
 };
 
@@ -1642,7 +1645,6 @@ window.dragHistoryStart = (event, id) => {
 
 window.dropTask = (event, dateStr) => {
     event.preventDefault();
-    let id = event.dataTransfer.getData('text/plain');
     let historyId = event.dataTransfer.getData('text/history');
     
     if (historyId) {
@@ -1658,10 +1660,39 @@ window.dropTask = (event, dateStr) => {
         return;
     }
 
+    let payloadStr = event.dataTransfer.getData('application/json');
+    let id, sourceDate;
+    if (payloadStr) {
+        try {
+            let payload = JSON.parse(payloadStr);
+            id = payload.id;
+            sourceDate = payload.sourceDate;
+        } catch(e) {}
+    }
+    if (!id) id = event.dataTransfer.getData('text/plain');
     if (!id) return;
     
     if (!engine.state.settings.taskDateOverrides) engine.state.settings.taskDateOverrides = {};
-    engine.state.settings.taskDateOverrides[id] = dateStr;
+    
+    let currentOv = engine.state.settings.taskDateOverrides[id];
+    let arr = [];
+    if (Array.isArray(currentOv)) arr = [...currentOv];
+    else if (currentOv) arr = [currentOv];
+    
+    if (sourceDate) {
+        if (arr.includes(sourceDate)) {
+            arr = arr.filter(d => d !== sourceDate);
+        }
+    } else {
+        arr = [];
+    }
+    
+    if (!arr.includes(dateStr)) {
+        arr.push(dateStr);
+    }
+    arr.sort();
+    
+    engine.state.settings.taskDateOverrides[id] = arr;
     
     if (!engine.state.settings.extraStudyDays) engine.state.settings.extraStudyDays = [];
     if (!engine.state.settings.extraStudyDays.includes(dateStr)) engine.state.settings.extraStudyDays.push(dateStr);
