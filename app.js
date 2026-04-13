@@ -535,7 +535,7 @@ function initDashboard() {
                         let titlePart = subjInfo.chapter.title;
                         if (titlePart.length > 10) titlePart = titlePart.substring(0, 10) + '...';
                         
-                        return `<div class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
+                        return `<div class="mini-badge" draggable="true" ondragstart="window.dragHistoryStart(event, '${ct.id}')" style="background: ${color}22; color: ${color}; border: 1px solid ${color}; font-weight: 700; display: flex; align-items: center; justify-content: space-between; cursor: grab;">
                             <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${subjInfo.subject.name} - ${subjInfo.chapter.title}">${shortName} - ${titlePart}</span>
                             <button onclick="window.cancelComplete('${ct.id}')" style="background: none; border: none; color: ${color}; cursor: pointer; font-size: 0.8rem; margin-left: 4px; padding: 0 2px;" title="공부 기록 취소">✕</button>
                         </div>`;
@@ -1611,6 +1611,9 @@ window.cancelComplete = (id) => {
     
     // 완전히 삭제해야 AI 스케줄러가 미완료 상태로 인식하고 오늘 할 일에 다시 넣습니다.
     delete engine.state.progress[id];
+    if (engine.state.settings.taskDateOverrides && engine.state.settings.taskDateOverrides[id]) {
+        delete engine.state.settings.taskDateOverrides[id];
+    }
     
     // Subtract from dailySpent
     if (oldDate && engine.state.dailySpent && engine.state.dailySpent[oldDate]) {
@@ -1633,9 +1636,28 @@ window.dragTaskStart = (event, id) => {
     event.dataTransfer.setData('text/plain', id);
 };
 
+window.dragHistoryStart = (event, id) => {
+    event.dataTransfer.setData('text/history', id);
+};
+
 window.dropTask = (event, dateStr) => {
     event.preventDefault();
     let id = event.dataTransfer.getData('text/plain');
+    let historyId = event.dataTransfer.getData('text/history');
+    
+    if (historyId) {
+        if (engine.state.progress[historyId]) {
+            engine.state.progress[historyId].completedAt = dateStr;
+            if (engine.state.settings.taskDateOverrides && engine.state.settings.taskDateOverrides[historyId]) {
+                delete engine.state.settings.taskDateOverrides[historyId];
+            }
+            engine.saveState();
+            engine.generateSchedule();
+            initDashboard();
+        }
+        return;
+    }
+
     if (!id) return;
     
     if (!engine.state.settings.taskDateOverrides) engine.state.settings.taskDateOverrides = {};

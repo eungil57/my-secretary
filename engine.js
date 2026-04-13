@@ -188,6 +188,7 @@ window.StudyEngine = class {
             for (let ch of pending[sub]) {
                 let overrideDate = (this.state.settings.taskDateOverrides || {})[ch.id];
                 if (overrideDate) {
+                    if (overrideDate < todayStrForCount) overrideDate = todayStrForCount;
                     if (!deferredTasks[overrideDate]) deferredTasks[overrideDate] = [];
                     deferredTasks[overrideDate].push({ sub, chapter: ch });
                 } else {
@@ -253,16 +254,30 @@ window.StudyEngine = class {
                     let mult = parseFloat(multipliers[dt.chapter.id] || 1.0);
                     let baseH = dt.chapter.weight !== undefined ? (dt.chapter.weight * 1.5) : (HOURS_PER_DIFF[dt.chapter.difficulty] || 2.0);
                     if (dt.sub === 'tax') baseH *= 2.0;
-                    let eHours = baseH * mult; 
+
+                    let required = baseH * mult;
+                    if (this.state.progress[dt.chapter.id] && this.state.progress[dt.chapter.id].status === 'partial') {
+                        required = required * (1 - this.state.progress[dt.chapter.id].ratio);
+                    }
+                    
+                    let canDo = Math.min(required, Math.max(0.5, effectiveBaseHours));
+                    if (canDo < 0.1) canDo = required;
                     
                     newSchedule[dateStr].push({
                         subjectId: dt.sub,
                         chapter: dt.chapter,
-                        allocated: eHours, 
+                        allocated: canDo, 
                         isReview: false
                     });
                     
-                    effectiveBaseHours -= eHours;
+                    let remaining = required - canDo;
+                    if (remaining > 0.05) {
+                        trackingCompleted[dt.chapter.id] = { remaining: remaining, lastDate: dateStr };
+                        pending[dt.sub].unshift(dt.chapter);
+                    } else {
+                        trackingCompleted[dt.chapter.id] = new Date(dateStr).getTime();
+                    }
+                    effectiveBaseHours -= canDo;
                 }
             }
             
@@ -376,7 +391,7 @@ window.StudyEngine = class {
                 });
 
                 if (eligibleSubjs.length > 0) {
-                    const reviewTiers = { 1: 0.5, 7: 0.3, 14: 0.2, 30: 0.1 };
+                    const reviewTiers = { 14: 0.4, 30: 0.3 };
                     const reviewDays = Object.keys(reviewTiers).map(Number);
                     let currentDayTs = new Date(dateStr).getTime();
                     
