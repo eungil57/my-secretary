@@ -457,8 +457,8 @@ window.StudyEngine = class {
                     
                     // Prioritize reviews for subjects we are actually studying progress for today
                     eligibleSubjs.sort((a, b) => {
-                        let aInToday = todaysSubjects.includes(a) ? 1 : 0;
-                        let bInToday = todaysSubjects.includes(b) ? 1 : 0;
+                        let aInToday = (todaysSubjects.includes(a) || subjectsWithDeferredToday.includes(a)) ? 1 : 0;
+                        let bInToday = (todaysSubjects.includes(b) || subjectsWithDeferredToday.includes(b)) ? 1 : 0;
                         return bInToday - aInToday;
                     });
                     
@@ -482,7 +482,8 @@ window.StudyEngine = class {
                                 
                                 // User explicitly requested that reviews MUST only appear when the subject is actively being studied that day.
                                 // If the subject is not active today, we wait (defer the review).
-                                if (!todaysSubjects.includes(subjKey)) {
+                                let isStudyingToday = todaysSubjects.includes(subjKey) || subjectsWithDeferredToday.includes(subjKey);
+                                if (!isStudyingToday) {
                                     continue;
                                 }
 
