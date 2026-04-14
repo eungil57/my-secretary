@@ -589,8 +589,9 @@ function initDashboard() {
         const containerFallback = document.getElementById('view-container');
         if (containerFallback) {
             containerFallback.innerHTML = `
-                <div class="glass-panel" style="padding: 2.5rem; text-align: center; background: rgba(254, 226, 226, 0.5); border: 2px solid #fecaca; border-radius: 16px;">
+                <div class="glass-panel" style="padding: 2.5rem; text-align: left; background: rgba(254, 226, 226, 0.5); border: 2px solid #fecaca; border-radius: 16px;">
                     <h3 style="color: #b91c1c; margin: 0; font-size: 1.25rem;">⚠️ 대시보드 로딩 중 일시적 오류 발생</h3>
+                    <pre style="color: #991b1b; margin: 0.75rem 0 1.5rem 0; font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap;">${err.stack || err.message || err}</pre>
                     <p style="color: #991b1b; margin: 0.75rem 0 1.5rem 0; font-size: 0.95rem; line-height: 1.5;">
                         일시적인 설정값 충돌이 감지되었습니다. <b>아래 버튼을 눌러 초기 설정으로 복구</b>하시면 즉시 정상 이용이 가능합니다.
                     </p>
