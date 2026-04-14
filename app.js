@@ -481,13 +481,6 @@ function initDashboard() {
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                         ${(engine.state.todayAllDueReviews && engine.state.todayAllDueReviews.length > 0) ? `<button class="btn btn-secondary glass-panel" style="border: 1px solid #f87171; color: #ef4444;" onclick="window.openPendingReviewsModal()">🔄 복습목록 (${engine.state.todayAllDueReviews.length})</button>` : ''}
                         <button class="btn btn-secondary glass-panel" onclick="window.appSkipDay()">${skipBtnText}</button>
-                        ${viewType === 'weekly' ? `
-                            <div style="display: flex; gap: 0.3rem;">
-                                <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem;" onclick="window.weeklyOffset--; window.initDashboard();">&lt; 이전 주</button>
-                                <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem;" onclick="window.weeklyOffset=0; window.initDashboard();">이번 주</button>
-                                <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem;" onclick="window.weeklyOffset++; window.initDashboard();">다음 주 &gt;</button>
-                            </div>
-                        ` : ''}
                     </div>
                 </div>
             `;
@@ -513,6 +506,16 @@ function initDashboard() {
                 ` : ''}
             `;
         }
+        if (viewType === 'weekly') {
+            html += `
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem; gap: 0.5rem;">
+                    <button class="btn btn-secondary glass-panel" style="padding: 0.5rem 1rem; border-radius: 12px; font-weight: 700; font-size: 0.85rem;" onclick="window.weeklyOffset--; window.initDashboard();">&lt; 이전 주</button>
+                    ${window.weeklyOffset !== 0 ? `<button class="btn btn-primary glass-panel" style="padding: 0.5rem 1rem; border-radius: 12px; font-weight: 700; font-size: 0.85rem; background: var(--color-primary); color: white;" onclick="window.weeklyOffset=0; window.initDashboard();">이번 주</button>` : ''}
+                    <button class="btn btn-secondary glass-panel" style="padding: 0.5rem 1rem; border-radius: 12px; font-weight: 700; font-size: 0.85rem;" onclick="window.weeklyOffset++; window.initDashboard();">다음 주 &gt;</button>
+                </div>
+            `;
+        }
+        
         html += `<div class="${(daysToRender === 7) ? 'weekly-grid' : 'monthly-grid'}">`;
         for (let i = 0; i < daysToRender; i++) {
             let y = currentDate.getFullYear();
@@ -593,7 +596,7 @@ function initDashboard() {
                         } else {
                             return `<div class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}44; cursor: grab; font-weight: 600;" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}')">
                                 <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem;" title="${prefix}${subj.name} - ${t.chapter.title}">${prefix}${shortName} - ${titlePart}</span>
-                                <span style="flex-shrink:0; margin-left:4px; opacity: 0.8; cursor: pointer; border: 1px solid currentColor; border-radius: 4px; padding: 1px 4px; font-size: 0.75rem;" onclick="window.editTaskHours('${dateStr}', '${t.chapter.id}', ${t.allocated.toFixed(1)}); event.stopPropagation();" title="클릭하여 당일 배분 시간 직접 수정">${t.allocated.toFixed(1)}H</span>
+                                <span style="flex-shrink:0; margin-left:4px; opacity: 0.8; cursor: pointer; font-size: 0.8rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'" onclick="window.editTaskHours('${dateStr}', '${t.chapter.id}', ${t.allocated.toFixed(1)}); event.stopPropagation();" title="당일 배분 시간 조절">${t.allocated.toFixed(1)}H</span>
                             </div>`;
                         }
                     }).join('');
