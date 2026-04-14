@@ -668,7 +668,10 @@ window.StudyEngine = class {
             if (cycle > 800) break;
         }
 
-        this.state.schedule = newSchedule;
+        if (!this.state.schedule) this.state.schedule = {};
+        for (let dt in newSchedule) {
+            this.state.schedule[dt] = newSchedule[dt];
+        }
         this.saveState(true); 
       } catch (e) {
         console.error("Scheduling loop failed:", e);

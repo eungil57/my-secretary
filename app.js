@@ -153,11 +153,13 @@ function initDashboard() {
         let currentDate = new Date(todayStr);
         let viewType = window.currentScheduleView || 'daily';
     
+        if (typeof window.weeklyOffset === 'undefined') window.weeklyOffset = 0;
+    
         if (viewType === 'weekly') {
             daysToRender = 7;
             let day = (isNaN(currentDate.getDay())) ? 0 : currentDate.getDay();
             let diff = currentDate.getDate() - day + (day === 0 ? -6 : 1); 
-            currentDate.setDate(diff);
+            currentDate.setDate(diff + (window.weeklyOffset * 7));
         } else if (viewType === 'monthly' || viewType === 'history') {
             let vDate = window.currentViewDate || new Date();
             currentDate = new Date(vDate.getFullYear(), vDate.getMonth(), 1);
@@ -284,7 +286,7 @@ function initDashboard() {
                             })()}
                         </div>
                         <div style="display: flex; flex-direction: row; align-items: center; gap: 1rem;">
-                            <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600; font-family: monospace; cursor: pointer; text-decoration: underline; text-decoration-style: dashed; padding: 2px 4px; border-radius: 4px;" title="클릭하여 당일 배분 시간 직접 수정" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'" onclick="window.editTaskHours('${todayStrLocal}', '${chId}', ${t.allocated.toFixed(1)})">${t.allocated.toFixed(1)}H ✏️</span>
+                            <span style="font-size: 0.85rem; background: var(--glass-bg); color: var(--text-main); font-weight: 700; font-family: monospace; cursor: pointer; padding: 4px 8px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid var(--glass-border); transition: all 0.2s;" title="클릭하여 당일 배분 시간 조절" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='var(--glass-bg)'" onclick="window.editTaskHours('${todayStrLocal}', '${chId}', ${t.allocated.toFixed(1)})">${t.allocated.toFixed(1)}H</span>
                             <div style="display: flex; gap: 0.4rem; align-items: center;">
                                 <button style="background: white; border: 2px solid ${color}; color: ${color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 1.1rem;" onmouseover="this.style.background='${color}11'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.transform='scale(1)'" onclick="window.appComplete('${chId}', ${t.allocated}, ${t.isReview ? 'true' : 'false'})" title="완료">
                                     ✓
@@ -479,6 +481,13 @@ function initDashboard() {
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                         ${(engine.state.todayAllDueReviews && engine.state.todayAllDueReviews.length > 0) ? `<button class="btn btn-secondary glass-panel" style="border: 1px solid #f87171; color: #ef4444;" onclick="window.openPendingReviewsModal()">🔄 복습목록 (${engine.state.todayAllDueReviews.length})</button>` : ''}
                         <button class="btn btn-secondary glass-panel" onclick="window.appSkipDay()">${skipBtnText}</button>
+                        ${viewType === 'weekly' ? `
+                            <div style="display: flex; gap: 0.3rem;">
+                                <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem;" onclick="window.weeklyOffset--; window.initDashboard();">&lt; 이전 주</button>
+                                <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem;" onclick="window.weeklyOffset=0; window.initDashboard();">이번 주</button>
+                                <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem;" onclick="window.weeklyOffset++; window.initDashboard();">다음 주 &gt;</button>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
             `;
@@ -546,6 +555,8 @@ function initDashboard() {
                 if (tasks.length === 0) {
                     badgesHtml = `<div class="calendar-empty">휴식 / 일정 없음</div>`;
                 } else {
+                    let isPastWeekly = (viewType === 'weekly' && dateStr < dEngine.getTodayStr());
+                    
                     badgesHtml = tasks.map(t => {
                         let color = getPastelColor(t.subjectId);
                         let subj = window.subjectData[t.subjectId];
@@ -554,10 +565,37 @@ function initDashboard() {
                         let titlePart = t.chapter.title;
                         if (titlePart.length > 10) titlePart = titlePart.substring(0, 10) + '...';
                         
-                        return `<div class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}44; cursor: grab; font-weight: 600;" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}')">
-                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem;" title="${prefix}${subj.name} - ${t.chapter.title}">${prefix}${shortName} - ${titlePart}</span>
-                            <span style="flex-shrink:0; margin-left:4px; opacity: 0.8; cursor: pointer; border-bottom: 1px dashed;" onclick="window.editTaskHours('${dateStr}', '${t.chapter.id}', ${t.allocated.toFixed(1)}); event.stopPropagation();" title="클릭하여 당일 배분 시간 직접 수정">${t.allocated.toFixed(1)}h ✏️</span>
-                        </div>`;
+                        if (isPastWeekly) {
+                            // Determine O/X/△ marker
+                            let markerState = (engine.state.historyMarkers && engine.state.historyMarkers[dateStr] && engine.state.historyMarkers[dateStr][t.chapter.id]) || null;
+                            if (!markerState) {
+                                let p = engine.state.progress[t.chapter.id];
+                                if (p) {
+                                    if (p.status === 'completed' && p.completedAt) {
+                                        let cDateStr = new Date(p.completedAt).toISOString().split('T')[0];
+                                        markerState = (cDateStr <= dateStr) ? 'O' : 'X';
+                                    } else if (p.status === 'partial') {
+                                        markerState = '△';
+                                    } else {
+                                        markerState = 'X';
+                                    }
+                                } else {
+                                    markerState = 'X';
+                                }
+                            }
+                            
+                            let markerColor = markerState === 'O' ? '#ef4444' : (markerState === 'X' ? '#dc2626' : '#f59e0b');
+                            
+                            return `<div class="mini-badge" style="background: white; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; padding: 4px 8px;">
+                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem; color: #475569; max-width: 80%;" title="${prefix}${subj.name} - ${t.chapter.title}">${prefix}${shortName} - ${titlePart}</span>
+                                <span style="cursor: pointer; font-size: 1.1rem; font-weight: 900; color: ${markerColor}; text-shadow: 0 1px 2px rgba(0,0,0,0.1); width: 20px; text-align: center; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'" onclick="window.togglePastMarker('${dateStr}', '${t.chapter.id}')">${markerState}</span>
+                            </div>`;
+                        } else {
+                            return `<div class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}44; cursor: grab; font-weight: 600;" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}')">
+                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem;" title="${prefix}${subj.name} - ${t.chapter.title}">${prefix}${shortName} - ${titlePart}</span>
+                                <span style="flex-shrink:0; margin-left:4px; opacity: 0.8; cursor: pointer; border: 1px solid currentColor; border-radius: 4px; padding: 1px 4px; font-size: 0.75rem;" onclick="window.editTaskHours('${dateStr}', '${t.chapter.id}', ${t.allocated.toFixed(1)}); event.stopPropagation();" title="클릭하여 당일 배분 시간 직접 수정">${t.allocated.toFixed(1)}H</span>
+                            </div>`;
+                        }
                     }).join('');
                 }
             }
@@ -642,32 +680,90 @@ function getPastelColor(id) {
 }
 
 window.editTaskHours = (dateStr, chapterId, currentHours) => {
-    let input = prompt(`이 일정에 몇 시간을 배분하시겠습니까?\n(현재: ${currentHours.toFixed(1)}시간)\n\n※ 빈 칸으로 두시거나 취소하면 AI 기본 배분(자동)으로 되돌아갑니다.`, currentHours.toFixed(1));
-    if (input === null) return;
+    let modal = document.getElementById('time-edit-modal');
+    let input = document.getElementById('time-edit-input');
+    if (!modal || !input) return;
     
-    input = input.trim();
-    if (input === '') {
-        if (engine.state.settings.taskHoursOverrides && engine.state.settings.taskHoursOverrides[dateStr]) {
-            delete engine.state.settings.taskHoursOverrides[dateStr][chapterId];
+    // Store context globally for the save/close functions
+    window._currentTimeEditCtx = { dateStr, chapterId };
+    
+    input.value = currentHours.toFixed(1);
+    modal.style.display = 'flex';
+    input.focus();
+};
+
+window.closeTimeEditModal = () => {
+    document.getElementById('time-edit-modal').style.display = 'none';
+};
+
+window.saveTimeEditModal = () => {
+    let ctx = window._currentTimeEditCtx;
+    if (!ctx) {
+        window.closeTimeEditModal();
+        return;
+    }
+    
+    let inputStr = document.getElementById('time-edit-input').value.trim();
+    
+    if (inputStr === '') {
+        if (engine.state.settings.taskHoursOverrides && engine.state.settings.taskHoursOverrides[ctx.dateStr]) {
+            delete engine.state.settings.taskHoursOverrides[ctx.dateStr][ctx.chapterId];
             engine.saveState();
             engine.generateSchedule();
             initDashboard();
         }
+        window.closeTimeEditModal();
         return;
     }
     
-    let hours = parseFloat(input);
+    let hours = parseFloat(inputStr);
     if (isNaN(hours) || hours < 0) {
         alert('올바른 숫자(시간)를 입력해주세요.');
         return;
     }
     
     if (!engine.state.settings.taskHoursOverrides) engine.state.settings.taskHoursOverrides = {};
-    if (!engine.state.settings.taskHoursOverrides[dateStr]) engine.state.settings.taskHoursOverrides[dateStr] = {};
+    if (!engine.state.settings.taskHoursOverrides[ctx.dateStr]) engine.state.settings.taskHoursOverrides[ctx.dateStr] = {};
     
-    engine.state.settings.taskHoursOverrides[dateStr][chapterId] = hours;
+    engine.state.settings.taskHoursOverrides[ctx.dateStr][ctx.chapterId] = hours;
     engine.saveState();
     engine.generateSchedule();
+    initDashboard();
+    window.closeTimeEditModal();
+};
+
+window.togglePastMarker = (dateStr, chapterId) => {
+    let currentMarker;
+    if (engine.state.historyMarkers && engine.state.historyMarkers[dateStr] && engine.state.historyMarkers[dateStr][chapterId]) {
+        currentMarker = engine.state.historyMarkers[dateStr][chapterId];
+    } else {
+        // Fallback to determine what it currently rendering as default
+        let p = engine.state.progress[chapterId];
+        if (p) {
+            if (p.status === 'completed' && p.completedAt) {
+                let cDateStr = new Date(p.completedAt).toISOString().split('T')[0];
+                currentMarker = (cDateStr <= dateStr) ? 'O' : 'X';
+            } else if (p.status === 'partial') {
+                currentMarker = '△';
+            } else {
+                currentMarker = 'X';
+            }
+        } else {
+            currentMarker = 'X';
+        }
+    }
+    
+    // Cycle: X -> O -> △ -> X
+    let nextMarker;
+    if (currentMarker === 'X') nextMarker = 'O';
+    else if (currentMarker === 'O') nextMarker = '△';
+    else nextMarker = 'X';
+    
+    if (!engine.state.historyMarkers) engine.state.historyMarkers = {};
+    if (!engine.state.historyMarkers[dateStr]) engine.state.historyMarkers[dateStr] = {};
+    
+    engine.state.historyMarkers[dateStr][chapterId] = nextMarker;
+    engine.saveState();
     initDashboard();
 };
 

@@ -8,19 +8,19 @@
     <!-- Fonts -->
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.6/dist/web/static/pretendard.css" />
     <!-- Local CSS -->
-    <link rel="stylesheet" href="style.css?v=35">
+    <link rel="stylesheet" href="style.css?v=36">
     <!-- Application Logic -->
-    <script src="data.js?v=35"></script>
-    <script src="engine.js?v=35"></script>
-    <script src="app.js?v=35"></script>
+    <script src="data.js?v=36"></script>
+    <script src="engine.js?v=36"></script>
+    <script src="app.js?v=36"></script>
     <!-- Bible Data and App -->
-    <script src="bible-data.js?v=35"></script>
-    <script src="bible-app.js?v=35"></script>
+    <script src="bible-data.js?v=36"></script>
+    <script src="bible-app.js?v=36"></script>
     <!-- Kinder English App -->
-    <script src="english-data.js?v=35"></script>
-    <script src="english-app.js?v=35"></script>
+    <script src="english-data.js?v=36"></script>
+    <script src="english-app.js?v=36"></script>
     <!-- Firebase Sync -->
-    <script type="module" src="firebase-config.js?v=35"></script>
+    <script type="module" src="firebase-config.js?v=36"></script>
 
     <style>
         /* Scoped CSS to revert Bible Tracker to its original Theme (Blue/White) */
@@ -37,8 +37,8 @@
     </style>
 </head>
 <body>
-    <!-- Version Fixer (v35) -->
-    <div style="position:fixed; top:2px; right:2px; font-size:10px; color:#94a3b8; background:rgba(255,255,255,0.7); padding:2px 6px; border-radius:4px; z-index:10000; pointer-events:none;">v35.0</div>
+    <!-- Version Fixer (v36) -->
+    <div style="position:fixed; top:2px; right:2px; font-size:10px; color:#94a3b8; background:rgba(255,255,255,0.7); padding:2px 6px; border-radius:4px; z-index:10000; pointer-events:none;">v36.0</div>
     
     <div id="app">
         <!-- Sidebar Navigation -->
@@ -121,6 +121,26 @@
                 <!-- JavaScript will inject english list UI here -->
             </div>
         </main>
+    </div>
+
+    <!-- Custom Modal for Editing Task Hours -->
+    <div id="time-edit-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 320px; padding: 2rem; border-radius: 20px; background: #faf9f6; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #f3f0e6;">
+            <h3 style="margin-top: 0; color: #4338ca; font-size: 1.1rem; margin-bottom: 0.5rem;">학습 시간 배분</h3>
+            <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.5rem; line-height: 1.4;">이 일정에 배분할 시간을 입력해주세요.<br>(빈 칸으로 두시면 AI 자동 배분)</p>
+            
+            <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+                <input type="number" id="time-edit-input" step="0.1" min="0" 
+                    style="width: 100px; text-align: center; font-size: 1.5rem; font-weight: 700; padding: 0.5rem; border: 2px solid #e2e8f0; border-radius: 12px; color: #1e293b; background: white; outline: none; transition: border-color 0.2s;"
+                    onfocus="this.style.borderColor='#818cf8'" onblur="this.style.borderColor='#e2e8f0'">
+                <span style="font-size: 1.2rem; font-weight: 700; color: #94a3b8;">H</span>
+            </div>
+            
+            <div style="display: flex; gap: 0.75rem; justify-content: center;">
+                <button onclick="window.closeTimeEditModal()" style="flex: 1; padding: 0.75rem; background: #e2e8f0; color: #475569; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#cbd5e1'" onmouseout="this.style.background='#e2e8f0'">취소</button>
+                <button onclick="window.saveTimeEditModal()" style="flex: 1; padding: 0.75rem; background: #6366f1; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 12px rgba(99, 102, 241, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(99, 102, 241, 0.2)'">확인</button>
+            </div>
+        </div>
     </div>
 </body>
 </html>
