@@ -284,7 +284,7 @@ function initDashboard() {
                             })()}
                         </div>
                         <div style="display: flex; flex-direction: row; align-items: center; gap: 1rem;">
-                            <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600; font-family: monospace;">${t.allocated.toFixed(1)}H</span>
+                            <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600; font-family: monospace; cursor: pointer; text-decoration: underline; text-decoration-style: dashed; padding: 2px 4px; border-radius: 4px;" title="클릭하여 당일 배분 시간 직접 수정" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'" onclick="window.editTaskHours('${todayStrLocal}', '${chId}', ${t.allocated.toFixed(1)})">${t.allocated.toFixed(1)}H ✏️</span>
                             <div style="display: flex; gap: 0.4rem; align-items: center;">
                                 <button style="background: white; border: 2px solid ${color}; color: ${color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 1.1rem;" onmouseover="this.style.background='${color}11'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.transform='scale(1)'" onclick="window.appComplete('${chId}', ${t.allocated}, ${t.isReview ? 'true' : 'false'})" title="완료">
                                     ✓
@@ -558,7 +558,7 @@ function initDashboard() {
                         
                         return `<div class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}44; cursor: grab; font-weight: 600;" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}')">
                             <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem;" title="${prefix}${subj.name} - ${t.chapter.title}">${prefix}${shortName} - ${titlePart}</span>
-                            <span style="flex-shrink:0; margin-left:4px; opacity: 0.8;">${t.allocated.toFixed(1)}h</span>
+                            <span style="flex-shrink:0; margin-left:4px; opacity: 0.8; cursor: pointer; border-bottom: 1px dashed;" onclick="window.editTaskHours('${dateStr}', '${t.chapter.id}', ${t.allocated.toFixed(1)}); event.stopPropagation();" title="클릭하여 당일 배분 시간 직접 수정">${t.allocated.toFixed(1)}h ✏️</span>
                         </div>`;
                     }).join('');
                 }
@@ -641,6 +641,36 @@ function getPastelColor(id) {
     if (id === 'cost' || id === 'cost_accounting') return '#fcd34d';
     return '#a78bfa';
 }
+
+window.editTaskHours = (dateStr, chapterId, currentHours) => {
+    let input = prompt(`이 일정에 몇 시간을 배분하시겠습니까?\n(현재: ${currentHours.toFixed(1)}시간)\n\n※ 빈 칸으로 두시거나 취소하면 AI 기본 배분(자동)으로 되돌아갑니다.`, currentHours.toFixed(1));
+    if (input === null) return;
+    
+    input = input.trim();
+    if (input === '') {
+        if (engine.state.settings.taskHoursOverrides && engine.state.settings.taskHoursOverrides[dateStr]) {
+            delete engine.state.settings.taskHoursOverrides[dateStr][chapterId];
+            engine.saveState();
+            engine.generateSchedule();
+            initDashboard();
+        }
+        return;
+    }
+    
+    let hours = parseFloat(input);
+    if (isNaN(hours) || hours < 0) {
+        alert('올바른 숫자(시간)를 입력해주세요.');
+        return;
+    }
+    
+    if (!engine.state.settings.taskHoursOverrides) engine.state.settings.taskHoursOverrides = {};
+    if (!engine.state.settings.taskHoursOverrides[dateStr]) engine.state.settings.taskHoursOverrides[dateStr] = {};
+    
+    engine.state.settings.taskHoursOverrides[dateStr][chapterId] = hours;
+    engine.saveState();
+    engine.generateSchedule();
+    initDashboard();
+};
 
 function createTaskCard(type, chapter, subject, allocatedHours, overrideColor, isReview = false, reviewDay = 0) {
     let badgeHtml = '';

@@ -70,6 +70,7 @@ window.StudyEngine = class {
         if (!this.state.dailySpent) this.state.dailySpent = {};
         if (!this.state.customTasks) this.state.customTasks = [];
         if (!this.state.bookmarks) this.state.bookmarks = {};
+        if (!this.state.settings.taskHoursOverrides) this.state.settings.taskHoursOverrides = {};
     }
 
     saveState(skipTimestamp = false) {
@@ -315,8 +316,14 @@ window.StudyEngine = class {
                         required = required * (1 - this.state.progress[dt.chapter.id].ratio);
                     }
                     
-                    let canDo = Math.min(required, Math.max(0.5, effectiveBaseHours));
-                    if (canDo < 0.1) canDo = required;
+                    let customH = (this.state.settings.taskHoursOverrides && this.state.settings.taskHoursOverrides[dateStr] && this.state.settings.taskHoursOverrides[dateStr][dt.chapter.id]);
+                    let canDo;
+                    if (customH !== undefined) {
+                        canDo = Math.min(required, customH);
+                    } else {
+                        canDo = Math.min(required, Math.max(0.5, effectiveBaseHours));
+                        if (canDo < 0.1) canDo = required;
+                    }
                     
                     newSchedule[dateStr].push({
                         subjectId: dt.sub,
@@ -597,7 +604,13 @@ window.StudyEngine = class {
                         required = required * (1 - this.state.progress[chapter.id].ratio);
                     }
 
-                    let canDo = Math.min(required, subjectBuckets[sub], effectiveBaseHours);
+                    let customH = (this.state.settings.taskHoursOverrides && this.state.settings.taskHoursOverrides[dateStr] && this.state.settings.taskHoursOverrides[dateStr][chapter.id]);
+                    let canDo;
+                    if (customH !== undefined) {
+                        canDo = Math.min(required, customH);
+                    } else {
+                        canDo = Math.min(required, subjectBuckets[sub], effectiveBaseHours);
+                    }
                     
                     if (canDo > 0) {
                         newSchedule[dateStr].push({
@@ -682,6 +695,11 @@ window.StudyEngine = class {
         // FIX: Clear manual scheduling overrides once the task is completed
         if (this.state.settings.taskDateOverrides && this.state.settings.taskDateOverrides[chapterId]) {
             delete this.state.settings.taskDateOverrides[chapterId];
+        }
+        
+        let completionDateStr = pastDateStr || this.getTodayStr();
+        if (this.state.settings.taskHoursOverrides && this.state.settings.taskHoursOverrides[completionDateStr] && this.state.settings.taskHoursOverrides[completionDateStr][chapterId]) {
+            delete this.state.settings.taskHoursOverrides[completionDateStr][chapterId];
         }
         
         if (actualMinutes && !pastDateStr) {
