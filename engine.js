@@ -191,8 +191,11 @@ window.StudyEngine = class {
                     let filtered = ov.filter(d => d >= todayStrForCount);
                     if (!this.isCompleted(chId)) {
                         if (filtered.length !== ov.length) {
-                            if (filtered.length === 0) delete this.state.settings.taskDateOverrides[chId];
-                            else this.state.settings.taskDateOverrides[chId] = filtered;
+                            let pastCount = ov.length - filtered.length;
+                            for (let i = 0; i < pastCount; i++) {
+                                filtered.unshift(todayStrForCount);
+                            }
+                            this.state.settings.taskDateOverrides[chId] = filtered;
                             needsSave = true;
                         }
                     } else {
@@ -202,7 +205,7 @@ window.StudyEngine = class {
                 } else {
                     if (this.state.settings.taskDateOverrides[chId] < todayStrForCount) {
                         if (!this.isCompleted(chId)) {
-                            delete this.state.settings.taskDateOverrides[chId];
+                            this.state.settings.taskDateOverrides[chId] = todayStrForCount;
                             needsSave = true;
                         }
                     } else if (this.isCompleted(chId)) {
@@ -253,6 +256,7 @@ window.StudyEngine = class {
         window.__projectedReviewTiers = {};
         
         let activeQueue = ['tax', 'accounting', 'cost_accounting', 'finance'];
+        activeQueue.sort((a, b) => (subjectProgressPct[a] || 0) - (subjectProgressPct[b] || 0));
 
         while(pending.tax.length > 0 || pending.accounting.length > 0 || pending.cost_accounting.length > 0 || pending.finance.length > 0) {
             const year = currentDate.getFullYear();

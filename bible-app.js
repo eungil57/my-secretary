@@ -125,7 +125,7 @@ window.initBibleDashboard = () => {
     for (let i = 0; i < 7; i++) {
         let d = new Date(mon);
         d.setDate(mon.getDate() + i);
-        let dtStr = d.toISOString().split('T')[0];
+        let dtStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         let cnt = dailyHistory[dtStr] || 0;
         if (cnt > weekMax) weekMax = cnt;
         periodWeeklyTotal += cnt;
@@ -156,7 +156,7 @@ window.initBibleDashboard = () => {
     for (let i = 0; i < monthDaysCount; i++) {
         let d = new Date(monthStart);
         d.setDate(monthStart.getDate() + i);
-        let dtStr = d.toISOString().split('T')[0];
+        let dtStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         let cnt = dailyHistory[dtStr] || 0;
         if (cnt > monthMax) monthMax = cnt;
         periodMonthlyTotal += cnt;
