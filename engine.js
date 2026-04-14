@@ -304,6 +304,8 @@ window.StudyEngine = class {
             let subjectsWithDeferredToday = [];
             if (deferredTasks[dateStr]) {
                 for (let dt of deferredTasks[dateStr]) {
+                    if (!dt.chapter || !dt.chapter.id) continue;
+                    
                     if (!subjectsWithDeferredToday.includes(dt.sub)) subjectsWithDeferredToday.push(dt.sub);
                     
                     let multipliers = this.state.chapterMultipliers || {};
