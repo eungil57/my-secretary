@@ -297,8 +297,6 @@ function initDashboard() {
                     </div>
                 `;
             }).join('');
-
-            let todayStrLocal = engine.getTodayStr();
             let isOptedInDay = engine.state.settings.extraStudyDays && engine.state.settings.extraStudyDays.includes(todayStrLocal);
             skipBtnText = isOptedInDay ? '☕ 오늘 수동 추가했던 일정 취소 (휴무로 복귀)' : '⏭️ 오늘 전체 건너뛰기';
 
