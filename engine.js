@@ -188,14 +188,25 @@ window.StudyEngine = class {
             for (let chId in this.state.settings.taskDateOverrides) {
                 let ov = this.state.settings.taskDateOverrides[chId];
                 if (Array.isArray(ov)) {
+                    // Fail-safe to clean up any corrupted duplicate arrays already stuck in local state
+                    let uniqueOv = [...new Set(ov)];
+                    if (uniqueOv.length !== ov.length) {
+                        ov = uniqueOv;
+                        this.state.settings.taskDateOverrides[chId] = uniqueOv;
+                        needsSave = true;
+                    }
+                    
                     let filtered = ov.filter(d => d >= todayStrForCount);
                     if (!this.isCompleted(chId)) {
                         if (filtered.length !== ov.length) {
-                            let pastCount = ov.length - filtered.length;
-                            for (let i = 0; i < pastCount; i++) {
-                                filtered.unshift(todayStrForCount);
+                            // Any dates in the past that were missed are simply removed.
+                            // The engine will naturally re-schedule them starting from today,
+                            // respecting max daily limits and heavy subject conflicts.
+                            if (filtered.length === 0) {
+                                delete this.state.settings.taskDateOverrides[chId];
+                            } else {
+                                this.state.settings.taskDateOverrides[chId] = [...new Set(filtered)];
                             }
-                            this.state.settings.taskDateOverrides[chId] = filtered;
                             needsSave = true;
                         }
                     } else {
@@ -205,7 +216,8 @@ window.StudyEngine = class {
                 } else {
                     if (this.state.settings.taskDateOverrides[chId] < todayStrForCount) {
                         if (!this.isCompleted(chId)) {
-                            this.state.settings.taskDateOverrides[chId] = todayStrForCount;
+                            // Missed past overrides return to the natural scheduling queue
+                            delete this.state.settings.taskDateOverrides[chId];
                             needsSave = true;
                         }
                     } else if (this.isCompleted(chId)) {
