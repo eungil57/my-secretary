@@ -384,6 +384,7 @@ window.StudyEngine = class {
 
             let maxSubjectsNum = 2;
             if (effectiveBaseHours >= 6.0) maxSubjectsNum = 3;
+            else if (effectiveBaseHours < 1.0 && subjectsWithDeferredToday.length > 0) maxSubjectsNum = 0;
             else if (effectiveBaseHours < 3.0) maxSubjectsNum = 1;
             
             activeQueue = activeQueue.filter(k => pending[k].length > 0);
