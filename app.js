@@ -589,7 +589,7 @@ function initDashboard() {
                             
                             let markerColor = markerState === 'O' ? '#ef4444' : (markerState === 'X' ? '#dc2626' : '#f59e0b');
                             
-                            return `<div class="mini-badge" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}')" style="background: ${color}22; border: 1px solid ${color}44; display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; cursor: grab;">
+                            return `<div class="mini-badge" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}')" style="background: ${color}22; border: 1px solid ${color}44; display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; cursor: grab; opacity: 0.55; filter: grayscale(20%);">
                                 <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem; color: ${color}; font-weight: 600; max-width: 80%;" title="${prefix}${subj.name} - ${t.chapter.title}">${prefix}${shortName} - ${titlePart}</span>
                                 <span style="cursor: pointer; font-size: 1.1rem; font-weight: 900; color: ${markerColor}; text-shadow: 0 1px 2px rgba(0,0,0,0.1); width: 20px; text-align: center; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#ffffff99'" onmouseout="this.style.background='transparent'" onclick="window.togglePastMarker('${dateStr}', '${t.chapter.id}')">${markerState}</span>
                             </div>`;
