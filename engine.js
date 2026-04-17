@@ -332,17 +332,25 @@ window.StudyEngine = class {
                     if (dt.sub === 'tax') baseH *= 2.0;
 
                     let required = baseH * mult;
-                    if (this.state.progress[dt.chapter.id] && this.state.progress[dt.chapter.id].status === 'partial') {
+                    
+                    if (trackingCompleted[dt.chapter.id]) {
+                        if (typeof trackingCompleted[dt.chapter.id] !== 'object') {
+                            continue; // Chapter already fully completed earlier in simulation
+                        }
+                        required = trackingCompleted[dt.chapter.id].remaining;
+                    } else if (this.state.progress[dt.chapter.id] && this.state.progress[dt.chapter.id].status === 'partial') {
                         required = required * (1 - this.state.progress[dt.chapter.id].ratio);
                     }
+                    
+                    if (required <= 0.05) continue;
                     
                     let customH = (this.state.settings.taskHoursOverrides && this.state.settings.taskHoursOverrides[dateStr] && this.state.settings.taskHoursOverrides[dateStr][dt.chapter.id]);
                     let canDo;
                     if (customH !== undefined) {
                         canDo = Math.min(required, customH);
                     } else {
-                        // USER REQUEST: Tasks explicitly moved to a specific date (overrides) should NOT be capped by remaining daily hours. Treat them as "extra study".
-                        canDo = required;
+                        // Cap manually overriden tasks to the max daily hours (e.g., 5.5) avoiding 10+ hour single tasks
+                        canDo = Math.min(required, baseHours); 
                     }
                     
                     newSchedule[dateStr].push({
@@ -355,7 +363,10 @@ window.StudyEngine = class {
                     let remaining = required - canDo;
                     if (remaining > 0.05) {
                         trackingCompleted[dt.chapter.id] = { remaining: remaining, lastDate: dateStr };
-                        pending[dt.sub].unshift(dt.chapter);
+                        let pArr = pending[dt.sub];
+                        if (!pArr.some(c => c.id === dt.chapter.id)) {
+                            pArr.unshift(dt.chapter);
+                        }
                     } else {
                         trackingCompleted[dt.chapter.id] = new Date(dateStr).getTime();
                     }
