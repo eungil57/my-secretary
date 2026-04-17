@@ -558,7 +558,7 @@ function initDashboard() {
                 if (tasks.length === 0) {
                     badgesHtml = `<div class="calendar-empty">휴식 / 일정 없음</div>`;
                 } else {
-                    let isPastWeekly = (viewType === 'weekly' && dateStr < dEngine.getTodayStr());
+                    let isPastWeekly = ((viewType === 'weekly' || viewType === 'monthly') && dateStr < dEngine.getTodayStr());
                     
                     badgesHtml = tasks.map(t => {
                         let color = getPastelColor(t.subjectId);
@@ -589,9 +589,9 @@ function initDashboard() {
                             
                             let markerColor = markerState === 'O' ? '#ef4444' : (markerState === 'X' ? '#dc2626' : '#f59e0b');
                             
-                            return `<div class="mini-badge" style="background: white; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; padding: 4px 8px;">
-                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem; color: #475569; max-width: 80%;" title="${prefix}${subj.name} - ${t.chapter.title}">${prefix}${shortName} - ${titlePart}</span>
-                                <span style="cursor: pointer; font-size: 1.1rem; font-weight: 900; color: ${markerColor}; text-shadow: 0 1px 2px rgba(0,0,0,0.1); width: 20px; text-align: center; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'" onclick="window.togglePastMarker('${dateStr}', '${t.chapter.id}')">${markerState}</span>
+                            return `<div class="mini-badge" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}')" style="background: ${color}22; border: 1px solid ${color}44; display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; cursor: grab;">
+                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem; color: ${color}; font-weight: 600; max-width: 80%;" title="${prefix}${subj.name} - ${t.chapter.title}">${prefix}${shortName} - ${titlePart}</span>
+                                <span style="cursor: pointer; font-size: 1.1rem; font-weight: 900; color: ${markerColor}; text-shadow: 0 1px 2px rgba(0,0,0,0.1); width: 20px; text-align: center; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#ffffff99'" onmouseout="this.style.background='transparent'" onclick="window.togglePastMarker('${dateStr}', '${t.chapter.id}')">${markerState}</span>
                             </div>`;
                         } else {
                             return `<div class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}44; cursor: grab; font-weight: 600;" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}')">

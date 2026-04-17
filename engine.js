@@ -280,10 +280,26 @@ window.StudyEngine = class {
             let wday = currentDate.getDay(); 
             if (this.state.skippedDays.includes(dateStr) || window.KOREAN_HOLIDAYS.includes(dateStr) || wday === 0 || wday === 6) {
                 if (this.state.skippedDays.includes(dateStr) || window.KOREAN_HOLIDAYS.includes(dateStr)) {
+                    if (deferredTasks[dateStr]) {
+                        let nextDate = new Date(currentDate);
+                        nextDate.setDate(nextDate.getDate() + 1);
+                        let ndStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth()+1).padStart(2,'0')}-${String(nextDate.getDate()).padStart(2,'0')}`;
+                        if (!deferredTasks[ndStr]) deferredTasks[ndStr] = [];
+                        deferredTasks[ndStr].push(...deferredTasks[dateStr]);
+                        delete deferredTasks[dateStr];
+                    }
                     currentDate.setDate(currentDate.getDate() + 1);
                     continue; // Skip if explicitly skipped by user or holiday
                 }
                 if (!this.state.settings.extraStudyDays || !this.state.settings.extraStudyDays.includes(dateStr)) {
+                    if (deferredTasks[dateStr]) {
+                        let nextDate = new Date(currentDate);
+                        nextDate.setDate(nextDate.getDate() + 1);
+                        let ndStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth()+1).padStart(2,'0')}-${String(nextDate.getDate()).padStart(2,'0')}`;
+                        if (!deferredTasks[ndStr]) deferredTasks[ndStr] = [];
+                        deferredTasks[ndStr].push(...deferredTasks[dateStr]);
+                        delete deferredTasks[dateStr];
+                    }
                     currentDate.setDate(currentDate.getDate() + 1);
                     continue; // Skip weekend unless opted in
                 }
@@ -323,8 +339,8 @@ window.StudyEngine = class {
                     if (customH !== undefined) {
                         canDo = Math.min(required, customH);
                     } else {
-                        canDo = Math.min(required, Math.max(0.5, effectiveBaseHours));
-                        if (canDo < 0.1) canDo = required;
+                        // USER REQUEST: Tasks explicitly moved to a specific date (overrides) should NOT be capped by remaining daily hours. Treat them as "extra study".
+                        canDo = required;
                     }
                     
                     newSchedule[dateStr].push({
