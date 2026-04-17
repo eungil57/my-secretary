@@ -690,6 +690,20 @@ window.StudyEngine = class {
         for (let dt in newSchedule) {
             this.state.schedule[dt] = newSchedule[dt];
         }
+        
+        let cleanTodayStr = this.getTodayStr();
+        for (let dt in this.state.schedule) {
+            if (dt < cleanTodayStr) {
+                this.state.schedule[dt] = this.state.schedule[dt].filter(t => {
+                    let hasHistory = this.state.historyMarkers && this.state.historyMarkers[dt] && this.state.historyMarkers[dt][t.chapter.id];
+                    let prog = this.state.progress[t.chapter.id];
+                    let isCompletedOnThisDay = prog && prog.status === 'completed' && prog.completedAt === dt;
+                    let isPartial = prog && prog.status === 'partial';
+                    return hasHistory || isCompletedOnThisDay || isPartial;
+                });
+            }
+        }
+
         this.saveState(true); 
       } catch (e) {
         console.error("Scheduling loop failed:", e);
