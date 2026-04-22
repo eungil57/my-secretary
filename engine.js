@@ -320,11 +320,20 @@ window.StudyEngine = class {
             newSchedule[dateStr] = [];
             
             let subjectsWithDeferredToday = [];
+            let deferredSpillover = [];
+            let tempMaxSubj = (baseHours >= 6.0) ? 3 : 2;
+
             if (deferredTasks[dateStr]) {
                 for (let dt of deferredTasks[dateStr]) {
                     if (!dt.chapter || !dt.chapter.id) continue;
                     
-                    if (!subjectsWithDeferredToday.includes(dt.sub)) subjectsWithDeferredToday.push(dt.sub);
+                    if (!subjectsWithDeferredToday.includes(dt.sub)) {
+                        if (subjectsWithDeferredToday.length >= tempMaxSubj) {
+                            deferredSpillover.push(dt);
+                            continue;
+                        }
+                        subjectsWithDeferredToday.push(dt.sub);
+                    }
                     
                     let multipliers = this.state.chapterMultipliers || {};
                     let mult = parseFloat(multipliers[dt.chapter.id] || 1.0);
@@ -374,6 +383,14 @@ window.StudyEngine = class {
                 }
             }
             
+            if (deferredSpillover.length > 0) {
+                let nextDate = new Date(currentDate);
+                nextDate.setDate(nextDate.getDate() + 1);
+                let ndStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth()+1).padStart(2,'0')}-${String(nextDate.getDate()).padStart(2,'0')}`;
+                if (!deferredTasks[ndStr]) deferredTasks[ndStr] = [];
+                deferredTasks[ndStr].push(...deferredSpillover);
+            }
+            
             // Move subjects already studied today (via overrides) to back of queue
             subjectsWithDeferredToday.forEach(s => {
                 let idx = activeQueue.indexOf(s);
@@ -404,7 +421,7 @@ window.StudyEngine = class {
             let unpicked = [];
             let allowedAttempts = activeQueue.length;
             
-            while(activeQueue.length > 0 && todaysSubjects.length < maxSubjectsNum && (todaysSubjects.length + unpicked.length) < allowedAttempts) {
+            while(activeQueue.length > 0 && (todaysSubjects.length + subjectsWithDeferredToday.length) < maxSubjectsNum && (todaysSubjects.length + unpicked.length) < allowedAttempts) {
                 let candidate = activeQueue.shift();
                 
                 // USER REQUEST: Don't automatically add next chapters for subjects with today's or future overrides
@@ -416,6 +433,23 @@ window.StudyEngine = class {
                 let conflict = false;
                 // Check against current picks AND deferred tasks for the day
                 let allTodaySubjs = [...todaysSubjects, ...subjectsWithDeferredToday];
+                
+                // Track if studied yesterday
+                let yesterdayStr = new Date(currentDate);
+                yesterdayStr.setDate(yesterdayStr.getDate() - 1);
+                let yStr = `${yesterdayStr.getFullYear()}-${String(yesterdayStr.getMonth()+1).padStart(2,'0')}-${String(yesterdayStr.getDate()).padStart(2,'0')}`;
+                
+                let studiedYesterday = false;
+                if (newSchedule[yStr]) {
+                    studiedYesterday = newSchedule[yStr].some(t => t.subjectId === candidate);
+                }
+                
+                // Smart Rotation: If the candidate was studied yesterday, and we already picked at least 1 subject today, skip it to force alternation.
+                // This prevents studying 2 subjects back-to-back if we already have progress today.
+                if (studiedYesterday && allTodaySubjs.length > 0 && effectiveBaseHours < 6.0) {
+                    conflict = true;
+                }
+
                 // User Request: 8.0h threshold for bundling tax/accounting
                 if (effectiveBaseHours < 8.0 && allTodaySubjs.length > 0) {
                     if ((candidate === 'accounting' && allTodaySubjs.includes('tax')) || 
@@ -642,6 +676,11 @@ window.StudyEngine = class {
                         canDo = Math.min(required, customH);
                     } else {
                         canDo = Math.min(required, subjectBuckets[sub], effectiveBaseHours);
+                        // Prevent starting big chapters with a tiny sliver of time
+                        if (canDo <= 0.5 && required > 0.5) {
+                            subjectBuckets[sub] = 0; // Deplete bucket to break out of chapter splitting
+                            canDo = 0;
+                        }
                     }
                     
                     if (canDo > 0) {
