@@ -197,19 +197,23 @@ window.StudyEngine = class {
                     }
                     
                     if (!this.isCompleted(chId)) {
-                        // USER REQUEST: Push past missed overrides to today instead of dropping them
+                        // USER REQUEST: Past missed overrides should return to natural flow, not forcefully flood today.
                         let newOv = [];
                         let changed = false;
                         ov.forEach(d => {
                             if (d < todayStrForCount) {
-                                newOv.push(todayStrForCount);
+                                // Do not push to today, effectively dropping the override and letting it schedule naturally
                                 changed = true;
                             } else {
                                 newOv.push(d);
                             }
                         });
                         if (changed) {
-                            this.state.settings.taskDateOverrides[chId] = [...new Set(newOv)];
+                            if (newOv.length > 0) {
+                                this.state.settings.taskDateOverrides[chId] = [...new Set(newOv)];
+                            } else {
+                                delete this.state.settings.taskDateOverrides[chId];
+                            }
                             needsSave = true;
                         }
                     } else {
@@ -219,8 +223,8 @@ window.StudyEngine = class {
                 } else {
                     if (this.state.settings.taskDateOverrides[chId] < todayStrForCount) {
                         if (!this.isCompleted(chId)) {
-                            // USER REQUEST: Push explicitly missed overrides to TODAY
-                            this.state.settings.taskDateOverrides[chId] = todayStrForCount;
+                            // USER REQUEST: Past missed overrides should return to natural flow
+                            delete this.state.settings.taskDateOverrides[chId];
                             needsSave = true;
                         }
                     } else if (this.isCompleted(chId)) {
@@ -366,10 +370,25 @@ window.StudyEngine = class {
                     if (customH !== undefined) {
                         canDo = Math.min(required, customH);
                     } else {
-                        // Cap manually overriden tasks to the max daily hours (e.g., 5.5) avoiding 10+ hour single tasks
-                        canDo = Math.min(required, baseHours); 
+                        // Cap manually overriden tasks to the max daily hours (e.g., 5.5) AND effectiveBaseHours!
+                        canDo = Math.min(required, baseHours, effectiveBaseHours); 
                     }
                     
+                    if (effectiveBaseHours <= 0.05) {
+                        deferredSpillover.push(dt);
+                        continue;
+                    }
+                    
+                    let scheduledForThisSubjToday = (newSchedule[dateStr] || []).filter(t => t.subjectId === dt.sub && !t.isReview).length;
+                    if (canDo < required && scheduledForThisSubjToday > 0) {
+                        deferredSpillover.push(dt);
+                        continue;
+                    } else if (canDo <= 0.5 && required > 0.5 && customH === undefined) {
+                        deferredSpillover.push(dt);
+                        continue;
+                    }
+                    
+                    if (!newSchedule[dateStr]) newSchedule[dateStr] = [];
                     newSchedule[dateStr].push({
                         subjectId: dt.sub,
                         chapter: dt.chapter,
