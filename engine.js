@@ -419,9 +419,17 @@ window.StudyEngine = class {
             }
 
             let maxSubjectsNum = 2;
-            if (effectiveBaseHours >= 6.0) maxSubjectsNum = 3;
-            else if (effectiveBaseHours < 1.0 && subjectsWithDeferredToday.length > 0) maxSubjectsNum = 0;
-            else if (effectiveBaseHours < 3.0) maxSubjectsNum = 1;
+            if (baseHours >= 6.0) maxSubjectsNum = 3;
+            else if (baseHours < 3.0) maxSubjectsNum = 1;
+            
+            if (effectiveBaseHours < 1.0) maxSubjectsNum = 0;
+
+            let alreadyStudiedSubjsToday = [];
+            if (dateStr === todayStrForCount) {
+                for (let k in completedTodayPerSubj) {
+                    if (completedTodayPerSubj[k] > 0) alreadyStudiedSubjsToday.push(k);
+                }
+            }
             
             activeQueue = activeQueue.filter(k => pending[k].length > 0);
             
@@ -429,7 +437,13 @@ window.StudyEngine = class {
             let unpicked = [];
             let allowedAttempts = activeQueue.length;
             
-            while(activeQueue.length > 0 && (todaysSubjects.length + subjectsWithDeferredToday.length) < maxSubjectsNum && (todaysSubjects.length + unpicked.length) < allowedAttempts) {
+            let uniqueTodaySubjs = () => {
+                let s = new Set([...todaysSubjects, ...subjectsWithDeferredToday]);
+                alreadyStudiedSubjsToday.forEach(x => s.add(x));
+                return s.size;
+            };
+
+            while(activeQueue.length > 0 && uniqueTodaySubjs() < maxSubjectsNum && (todaysSubjects.length + unpicked.length) < allowedAttempts) {
                 let candidate = activeQueue.shift();
                 
                 // USER REQUEST: Don't automatically add next chapters for subjects with today's or future overrides
@@ -684,8 +698,15 @@ window.StudyEngine = class {
                         canDo = Math.min(required, customH);
                     } else {
                         canDo = Math.min(required, subjectBuckets[sub], effectiveBaseHours);
-                        // Prevent starting big chapters with a tiny sliver of time
-                        if (canDo <= 0.5 && required > 0.5) {
+                        
+                        let scheduledForThisSubjToday = newSchedule[dateStr].filter(t => t.subjectId === sub && !t.isReview).length;
+                        
+                        // Prevent starting big chapters with a tiny sliver of time, 
+                        // AND prevent splitting a new chapter if we already studied a chapter for this subject today.
+                        if (canDo < required && scheduledForThisSubjToday > 0) {
+                            subjectBuckets[sub] = 0; // Break out of chapter splitting
+                            canDo = 0;
+                        } else if (canDo <= 0.5 && required > 0.5) {
                             subjectBuckets[sub] = 0; // Deplete bucket to break out of chapter splitting
                             canDo = 0;
                         }
