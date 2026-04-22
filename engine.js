@@ -328,7 +328,15 @@ window.StudyEngine = class {
                     if (!dt.chapter || !dt.chapter.id) continue;
                     
                     if (!subjectsWithDeferredToday.includes(dt.sub)) {
-                        if (subjectsWithDeferredToday.length >= tempMaxSubj) {
+                        let conflict = false;
+                        if (effectiveBaseHours < 8.0 && subjectsWithDeferredToday.length > 0) {
+                            if ((dt.sub === 'accounting' && subjectsWithDeferredToday.includes('tax')) || 
+                                (dt.sub === 'tax' && subjectsWithDeferredToday.includes('accounting'))) {
+                                conflict = true;
+                            }
+                        }
+                        
+                        if (conflict || subjectsWithDeferredToday.length >= tempMaxSubj) {
                             deferredSpillover.push(dt);
                             continue;
                         }
