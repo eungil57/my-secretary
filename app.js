@@ -270,11 +270,42 @@ function initDashboard() {
                 if (!subj || !t.chapter) return '';
                 let prefix = t.isReview ? '[복습] ' : '';
                 let chId = t.chapter.id ? t.chapter.id.toString() : 'unknown';
+                
+                let p = engine.state.progress[t.chapter.id];
+                let isCompToday = p && p.status === 'completed' && p.completedAt === todayStrLocal;
+                let isPartial = p && p.status === 'partial';
+                let hasHistory = engine.state.historyMarkers && engine.state.historyMarkers[todayStrLocal] && engine.state.historyMarkers[todayStrLocal][t.chapter.id];
+                let isDone = isCompToday || hasHistory;
+                
+                let titleStyle = isDone ? `text-decoration: line-through; color: var(--text-muted); opacity: 0.7;` : `color: var(--text-main);`;
+                let bgStyle = isDone ? `background: rgba(0,0,0,0.02);` : `background: transparent;`;
+                
+                let controlsHtml = '';
+                if (isDone) {
+                    controlsHtml = `<div style="color: var(--color-forest); font-weight: 800; padding: 4px 12px; background: rgba(46, 83, 57, 0.1); border-radius: 12px; font-size: 0.9rem;">완료됨 ✨</div>`;
+                } else if (isPartial) {
+                    controlsHtml = `
+                        <div style="color: #d97706; font-weight: 800; padding: 4px 10px; background: #fffbeb; border-radius: 12px; border: 1px dashed #fde68a; margin-right: 0.5rem; font-size: 0.85rem;">진행중 🏃‍♂️</div>
+                        <button style="background: white; border: 2px solid ${color}; color: ${color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 1.1rem;" onmouseover="this.style.background='${color}11'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.transform='scale(1)'" onclick="window.appComplete('${chId}', ${t.allocated}, ${t.isReview ? 'true' : 'false'})" title="완료">
+                            ✓
+                        </button>
+                    `;
+                } else {
+                    controlsHtml = `
+                        <button style="background: white; border: 2px solid ${color}; color: ${color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 1.1rem;" onmouseover="this.style.background='${color}11'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.transform='scale(1)'" onclick="window.appComplete('${chId}', ${t.allocated}, ${t.isReview ? 'true' : 'false'})" title="완료">
+                            ✓
+                        </button>
+                        <button style="background: white; border: 2px dashed var(--text-muted); color: var(--text-muted); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 1rem;" onmouseover="this.style.background='#f8fafc'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.transform='scale(1)'" onclick="window.appPartial('${chId}', ${t.allocated})" title="진행중">
+                            △
+                        </button>
+                    `;
+                }
+
                 return `
-                    <div style="padding: 1rem 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--glass-border); position: relative; background: transparent; margin-bottom: 0;">
+                    <div style="padding: 1rem 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--glass-border); position: relative; ${bgStyle} margin-bottom: 0;">
                         <div style="position: absolute; left: 0; width: 4px; height: 60%; background: ${color}; border-radius: 2px;"></div>
                         <div style="display: flex; flex-direction: column; gap: 0.3rem; padding-left: 1rem;">
-                            <span style="color: ${color}; font-weight: 800; font-size: 0.8rem; letter-spacing: 0.5px;">${subj.name}</span>
+                            <span style="color: ${color}; font-weight: 800; font-size: 0.8rem; letter-spacing: 0.5px; opacity: ${isDone ? 0.6 : 1};">${subj.name}</span>
                             ${(() => {
                                 let bkmk = (engine.state.bookmarks && engine.state.bookmarks[t.chapter.id]) ? `<span style="font-size: 0.85rem; color: #d97706; background: #fffbeb; padding: 2px 6px; border-radius: 4px; border: 1px solid #fde68a; margin-left: 0.5rem;">📍 ${engine.state.bookmarks[t.chapter.id]}</span>` : '';
                                 let titleStr = t.chapter.title || '제목 없음';
@@ -282,18 +313,13 @@ function initDashboard() {
                                 let titleHtml = isCustom ? 
                                     `<span style="cursor:pointer; border-bottom:1px dashed var(--text-muted);" onclick="window.editCustomTaskTitle('${chId}')" title="클릭하여 스케줄 제목 수정">✏️ ${titleStr}</span>` : 
                                     titleStr;
-                                return `<span style="font-weight: 700; font-size: 1.1rem; color: var(--text-main); display: flex; align-items: center;">${prefix}${titleHtml} ${bkmk}</span>`;
+                                return `<span style="font-weight: 700; font-size: 1.1rem; ${titleStyle} display: flex; align-items: center;">${prefix}${titleHtml} ${bkmk}</span>`;
                             })()}
                         </div>
                         <div style="display: flex; flex-direction: row; align-items: center; gap: 1rem;">
-                            <span style="font-size: 0.85rem; background: var(--glass-bg); color: var(--text-main); font-weight: 700; font-family: monospace; cursor: pointer; padding: 4px 8px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid var(--glass-border); transition: all 0.2s;" title="클릭하여 당일 배분 시간 조절" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='var(--glass-bg)'" onclick="window.editTaskHours('${todayStrLocal}', '${chId}', ${t.allocated.toFixed(1)})">${t.allocated.toFixed(1)}H</span>
+                            <span style="font-size: 0.85rem; background: var(--glass-bg); color: var(--text-main); font-weight: 700; font-family: monospace; cursor: ${isDone ? 'default' : 'pointer'}; padding: 4px 8px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid var(--glass-border); transition: all 0.2s; opacity: ${isDone ? 0.5 : 1};" ${isDone ? '' : `title="클릭하여 당일 배분 시간 조절" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='var(--glass-bg)'" onclick="window.editTaskHours('${todayStrLocal}', '${chId}', ${t.allocated.toFixed(1)})"`}>${t.allocated.toFixed(1)}H</span>
                             <div style="display: flex; gap: 0.4rem; align-items: center;">
-                                <button style="background: white; border: 2px solid ${color}; color: ${color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 1.1rem;" onmouseover="this.style.background='${color}11'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.transform='scale(1)'" onclick="window.appComplete('${chId}', ${t.allocated}, ${t.isReview ? 'true' : 'false'})" title="완료">
-                                    ✓
-                                </button>
-                                <button style="background: white; border: 2px dashed var(--text-muted); color: var(--text-muted); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 1rem;" onmouseover="this.style.background='#f8fafc'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.transform='scale(1)'" onclick="window.appPartial('${chId}', ${t.allocated})" title="진행중">
-                                    △
-                                </button>
+                                ${controlsHtml}
                             </div>
                         </div>
                     </div>

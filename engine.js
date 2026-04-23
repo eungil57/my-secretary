@@ -221,13 +221,11 @@ window.StudyEngine = class {
                         needsSave = true;
                     }
                 } else {
-                    if (this.state.settings.taskDateOverrides[chId] < todayStrForCount) {
-                        if (!this.isCompleted(chId)) {
-                            // USER REQUEST: Past missed overrides should return to natural flow
-                            delete this.state.settings.taskDateOverrides[chId];
-                            needsSave = true;
-                        }
-                    } else if (this.isCompleted(chId)) {
+                    if (this.isCompleted(chId)) {
+                        delete this.state.settings.taskDateOverrides[chId];
+                        needsSave = true;
+                    } else if (this.state.settings.taskDateOverrides[chId] < todayStrForCount) {
+                        // USER REQUEST: Past missed overrides should return to natural flow
                         delete this.state.settings.taskDateOverrides[chId];
                         needsSave = true;
                     }
