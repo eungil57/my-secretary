@@ -274,37 +274,37 @@ window.StudyEngine = class {
         let trackingCompleted = {}; 
         window.__projectedReviewTiers = {};
         
-        let activeQueue = ['tax', 'accounting', 'cost_accounting', 'finance'];
-        activeQueue.sort((a, b) => (subjectProgressPct[a] || 0) - (subjectProgressPct[b] || 0));
-
-        // USER REQUEST: Uncompleted subjects from the past MUST carry over and have highest priority today
-        let pastUncompletedSubjs = [];
-        if (this.state.schedule) {
-            let pastDates = Object.keys(this.state.schedule).filter(d => d < todayStrForCount).sort().reverse();
-            for (let pd of pastDates) {
-                let tasks = this.state.schedule[pd];
-                if (!tasks || tasks.length === 0) continue;
-                
-                // Only look at the single most recent active past day to find missed tasks.
-                // We don't want to dig up partial tasks from days ago and mess up the rotation.
-                for (let t of tasks) {
-                    if (!t.isReview && !this.isCompleted(t.chapter.id)) {
-                        if (!pastUncompletedSubjs.includes(t.subjectId)) {
-                            pastUncompletedSubjs.push(t.subjectId);
-                        }
+        let subjectLastStudied = { tax: '', accounting: '', cost_accounting: '', finance: '' };
+        for (let k in this.state.progress) {
+            let p = this.state.progress[k];
+            if (p.status === 'completed' && p.completedAt) {
+                let subjK = null;
+                for (let subjKey in window.subjectData) {
+                    if (window.subjectData[subjKey].chapters.find(c => String(c.id) === String(k))) {
+                        subjK = subjKey; break;
                     }
                 }
-                break; // ALWAYS break after the most recent day with a schedule
+                if (!subjK && this.state.customTasks) {
+                    let ct = this.state.customTasks.find(c => String(c.id) === String(k));
+                    if (ct) subjK = ct.subjectId;
+                }
+                if (!subjK && String(k).endsWith('_obj')) subjK = 'tax';
+                
+                if (subjK && p.completedAt > subjectLastStudied[subjK]) {
+                    subjectLastStudied[subjK] = p.completedAt;
+                }
             }
         }
         
-        // Move these uncompleted subjects to the FRONT of the queue
-        pastUncompletedSubjs.reverse().forEach(sub => {
-            let idx = activeQueue.indexOf(sub);
-            if (idx > -1) {
-                activeQueue.splice(idx, 1);
-                activeQueue.unshift(sub);
+        let activeQueue = ['tax', 'accounting', 'cost_accounting', 'finance'];
+        activeQueue.sort((a, b) => {
+            let lastA = subjectLastStudied[a] || '0000-00-00';
+            let lastB = subjectLastStudied[b] || '0000-00-00';
+            if (lastA !== lastB) {
+                return lastA.localeCompare(lastB); // Oldest first (Least Recently Studied)
             }
+            // tie-break with progress
+            return (subjectProgressPct[a] || 0) - (subjectProgressPct[b] || 0);
         });
 
 
@@ -513,7 +513,10 @@ window.StudyEngine = class {
                 
                 let studiedYesterday = false;
                 if (newSchedule[yStr]) {
-                    studiedYesterday = newSchedule[yStr].some(t => t.subjectId === candidate);
+                    studiedYesterday = newSchedule[yStr].some(t => t.subjectId === candidate && !t.isReview);
+                } else if (this.state.schedule && this.state.schedule[yStr]) {
+                    // For the very first day of simulation, look at actual history
+                    studiedYesterday = this.state.schedule[yStr].some(t => t.subjectId === candidate && !t.isReview);
                 }
                 
                 // Smart Rotation: If the candidate was studied yesterday, and we already picked at least 1 subject today, skip it to force alternation.
