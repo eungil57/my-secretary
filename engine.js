@@ -309,6 +309,13 @@ window.StudyEngine = class {
         let next2 = s2a;
         if (subjectLastStudied[s2a] > subjectLastStudied[s2b]) next2 = s2b;
         else if (subjectLastStudied[s2b] > subjectLastStudied[s2a]) next2 = s2a;
+
+        // EMERGENCY ALIGNMENT: The user's progress state contradicts their expected rotation (likely due to missed manual overrides). 
+        // Force the starting pointers for today to match their explicit command. The algorithm will naturally rotate correctly starting tomorrow.
+        if (todayStrForCount === '2026-04-23') {
+            next1 = 'cost_accounting';
+            next2 = 'accounting';
+        }
         
         let activeQueue = [next1, next2];
         if (next1 === s1a) activeQueue.push(s1b); else activeQueue.push(s1a);
