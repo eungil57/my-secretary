@@ -296,16 +296,24 @@ window.StudyEngine = class {
             }
         }
         
-        let activeQueue = ['tax', 'accounting', 'cost_accounting', 'finance'];
-        activeQueue.sort((a, b) => {
-            let lastA = subjectLastStudied[a] || '0000-00-00';
-            let lastB = subjectLastStudied[b] || '0000-00-00';
-            if (lastA !== lastB) {
-                return lastA.localeCompare(lastB); // Oldest first (Least Recently Studied)
-            }
-            // tie-break with progress
-            return (subjectProgressPct[a] || 0) - (subjectProgressPct[b] || 0);
-        });
+        // USER REQUEST: STRICT 2-SLOT ALTERNATING ROTATION
+        // Slot 1: cost_accounting <-> finance
+        // Slot 2: accounting <-> tax
+        let s1a = 'cost_accounting', s1b = 'finance';
+        let s2a = 'accounting', s2b = 'tax';
+        
+        let next1 = s1a;
+        if (subjectLastStudied[s1a] > subjectLastStudied[s1b]) next1 = s1b;
+        else if (subjectLastStudied[s1b] > subjectLastStudied[s1a]) next1 = s1a;
+        
+        let next2 = s2a;
+        if (subjectLastStudied[s2a] > subjectLastStudied[s2b]) next2 = s2b;
+        else if (subjectLastStudied[s2b] > subjectLastStudied[s2a]) next2 = s2a;
+        
+        let activeQueue = [next1, next2];
+        if (next1 === s1a) activeQueue.push(s1b); else activeQueue.push(s1a);
+        if (next2 === s2a) activeQueue.push(s2b); else activeQueue.push(s2a);
+
 
 
         while(pending.tax.length > 0 || pending.accounting.length > 0 || pending.cost_accounting.length > 0 || pending.finance.length > 0) {
@@ -759,7 +767,7 @@ window.StudyEngine = class {
                         if (canDo < required && scheduledForThisSubjToday > 0) {
                             subjectBuckets[sub] = 0; // Break out of chapter splitting
                             canDo = 0;
-                        } else if (canDo <= 0.5 && required > 0.5) {
+                        } else if (canDo <= 0.5 && required > 0.5 && scheduledForThisSubjToday > 0) {
                             subjectBuckets[sub] = 0; // Deplete bucket to break out of chapter splitting
                             canDo = 0;
                         }
