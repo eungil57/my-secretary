@@ -277,6 +277,38 @@ window.StudyEngine = class {
         let activeQueue = ['tax', 'accounting', 'cost_accounting', 'finance'];
         activeQueue.sort((a, b) => (subjectProgressPct[a] || 0) - (subjectProgressPct[b] || 0));
 
+        // USER REQUEST: Uncompleted subjects from the past MUST carry over and have highest priority today
+        let pastUncompletedSubjs = [];
+        if (this.state.schedule) {
+            let pastDates = Object.keys(this.state.schedule).filter(d => d < todayStrForCount).sort().reverse();
+            for (let pd of pastDates) {
+                let tasks = this.state.schedule[pd];
+                let foundAny = false;
+                for (let t of tasks) {
+                    if (!t.isReview && !this.isCompleted(t.chapter.id)) {
+                        if (!pastUncompletedSubjs.includes(t.subjectId)) {
+                            pastUncompletedSubjs.push(t.subjectId);
+                        }
+                        foundAny = true;
+                    }
+                }
+                // If we found uncompleted tasks in the most recent past day that had tasks, we can stop looking further back
+                // Wait, maybe we just take all uncompleted from the past? 
+                // Let's just collect them all from recent past.
+                if (foundAny && pastUncompletedSubjs.length >= 2) break; 
+            }
+        }
+        
+        // Move these uncompleted subjects to the FRONT of the queue
+        pastUncompletedSubjs.reverse().forEach(sub => {
+            let idx = activeQueue.indexOf(sub);
+            if (idx > -1) {
+                activeQueue.splice(idx, 1);
+                activeQueue.unshift(sub);
+            }
+        });
+
+
         while(pending.tax.length > 0 || pending.accounting.length > 0 || pending.cost_accounting.length > 0 || pending.finance.length > 0) {
             const year = currentDate.getFullYear();
             const month = String(currentDate.getMonth() + 1).padStart(2, '0');
