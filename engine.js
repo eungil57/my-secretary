@@ -666,7 +666,18 @@ window.StudyEngine = class {
                                         
                                         let fb = p && p.feedback ? p.feedback : 'normal';
                                         let fbMult = (fb === 'hard' ? 1.5 : (fb === 'easy' ? 0.7 : 1.0));
-                                        let dur = (reviewTiers[targetTier] || 0.5) * fbMult;
+                                        
+                                        // Feature: Scale review time by actual time spent during 1st pass
+                                        let timeRatio = 1.0;
+                                        if (p && p.spentHours > 0) {
+                                            let baseH = ch.weight !== undefined ? (ch.weight * 1.5) : (window.HOURS_PER_DIFF[ch.difficulty] || 2.0);
+                                            if (subjKey === 'tax') baseH *= 2.0;
+                                            timeRatio = p.spentHours / baseH;
+                                            // Cap the ratio between 0.5x and 2.5x
+                                            timeRatio = Math.max(0.5, Math.min(timeRatio, 2.5));
+                                        }
+                                        
+                                        let dur = (reviewTiers[targetTier] || 0.5) * fbMult * timeRatio;
                                         
                                         availableReviewsToday.push({ subjKey, ch, dur, diffDays: targetTier });
                                     }
@@ -751,6 +762,15 @@ window.StudyEngine = class {
                     let mult = parseFloat(multipliers[chapter.id] || 1.0);
                     let baseH = chapter.weight !== undefined ? (chapter.weight * 1.5) : (HOURS_PER_DIFF[chapter.difficulty] || 2.0);
                     if (sub === 'tax') baseH *= 2.0;
+
+                    // Feature: Scale future progress tasks by actual time spent previously (for 2회독 or restarts)
+                    // If the task is pending but has spentHours, it means it was restarted for a 2nd pass.
+                    let pInfo = this.state.progress[chapter.id];
+                    if (pInfo && pInfo.spentHours > 0 && pInfo.status !== 'partial') {
+                        let timeRatio = pInfo.spentHours / baseH;
+                        timeRatio = Math.max(0.6, Math.min(timeRatio, 2.0)); // Cap between 0.6x and 2.0x for 2nd pass
+                        mult *= timeRatio;
+                    }
 
                     // If it was partial from previous days in THIS LOOP, get remaining
                     let required = baseH * mult;
