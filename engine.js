@@ -283,19 +283,18 @@ window.StudyEngine = class {
             let pastDates = Object.keys(this.state.schedule).filter(d => d < todayStrForCount).sort().reverse();
             for (let pd of pastDates) {
                 let tasks = this.state.schedule[pd];
-                let foundAny = false;
+                if (!tasks || tasks.length === 0) continue;
+                
+                // Only look at the single most recent active past day to find missed tasks.
+                // We don't want to dig up partial tasks from days ago and mess up the rotation.
                 for (let t of tasks) {
                     if (!t.isReview && !this.isCompleted(t.chapter.id)) {
                         if (!pastUncompletedSubjs.includes(t.subjectId)) {
                             pastUncompletedSubjs.push(t.subjectId);
                         }
-                        foundAny = true;
                     }
                 }
-                // If we found uncompleted tasks in the most recent past day that had tasks, we can stop looking further back
-                // Wait, maybe we just take all uncompleted from the past? 
-                // Let's just collect them all from recent past.
-                if (foundAny && pastUncompletedSubjs.length >= 2) break; 
+                break; // ALWAYS break after the most recent day with a schedule
             }
         }
         
