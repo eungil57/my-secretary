@@ -489,7 +489,7 @@ function initDashboard() {
             html += `
                 ${pacingWarningHtml}
                 <div style="flex:1;">
-                    <div class="glass-panel" style="padding: 2.5rem 2rem;">
+                    <div class="glass-panel" style="padding: 2.5rem 2rem; transition: background 0.2s;" ondragenter="this.style.background='rgba(46, 83, 57, 0.1)'" ondragleave="this.style.background=''" ondragover="event.preventDefault(); this.style.background='rgba(46, 83, 57, 0.1)'" ondrop="this.style.background=''; window.dropTask(event, dEngine.getTodayStr())">
                         <h2 style="margin-bottom: 2rem; color: var(--color-forest); font-size: 1.6rem; letter-spacing:-0.4px; font-family:'Apple SD Gothic Neo', serif;">Today's Schedule</h2>
                         <div style="display: flex; flex-direction: column; border-top: 1px solid var(--glass-border);">
                             ${cardsHtml}
