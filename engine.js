@@ -576,45 +576,7 @@ window.StudyEngine = class {
                 yesterdayStr.setDate(yesterdayStr.getDate() - 1);
                 let yStr = `${yesterdayStr.getFullYear()}-${String(yesterdayStr.getMonth()+1).padStart(2,'0')}-${String(yesterdayStr.getDate()).padStart(2,'0')}`;
                 
-                let studiedYesterday = false;
-                if (yStr < todayStrForCount) {
-                    let compY = false;
-                    for (let k in this.state.progress) {
-                        let p = this.state.progress[k];
-                        if ((p.status === 'completed' || p.status === 'partial') && p.completedAt === yStr) {
-                            let subjK = null;
-                            for (let sKey in window.subjectData) {
-                                if (window.subjectData[sKey].chapters.find(c => String(c.id) === String(k))) subjK = sKey;
-                            }
-                            if (!subjK && String(k).endsWith('_obj')) subjK = 'tax';
-                            if (subjK === candidate) compY = true;
-                        }
-                    }
-                    if (this.state.historyMarkers && this.state.historyMarkers[yStr]) {
-                        for (let chId in this.state.historyMarkers[yStr]) {
-                            if (this.state.historyMarkers[yStr][chId] === 'O' || this.state.historyMarkers[yStr][chId] === '△') {
-                                let subjK = null;
-                                for (let sKey in window.subjectData) {
-                                    if (window.subjectData[sKey].chapters.find(c => String(c.id) === String(chId))) subjK = sKey;
-                                }
-                                if (!subjK && String(chId).endsWith('_obj')) subjK = 'tax';
-                                if (subjK === candidate) compY = true;
-                            }
-                        }
-                    }
-                    studiedYesterday = compY;
-                } else {
-                    if (newSchedule[yStr]) {
-                        studiedYesterday = newSchedule[yStr].some(t => t.subjectId === candidate && !t.isReview);
-                    }
-                }
-                
-                // Smart Rotation: If the candidate was studied yesterday, and we already picked at least 1 subject today, skip it to force alternation.
-                // This prevents studying 2 subjects back-to-back if we already have progress today.
-                if (studiedYesterday && allTodaySubjs.length > 0 && effectiveBaseHours < 6.0) {
-                    conflict = true;
-                }
-
+                // Smart Rotation removed: Let the activeQueue strictly handle the alternation.
                 // User Request: 8.0h threshold for bundling tax/accounting
                 if (effectiveBaseHours < 8.0 && allTodaySubjs.length > 0) {
                     if ((candidate === 'accounting' && allTodaySubjs.includes('tax')) || 
