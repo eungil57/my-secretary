@@ -309,14 +309,6 @@ window.StudyEngine = class {
         else if (subjectLastStudied[s2b] > subjectLastStudied[s2a]) next2 = s2a;
 
         let activeQueue = [next1, next2];
-        
-        // TEMPORARY BRIDGE: Because the old engine logic aggressively deleted missed tasks from this.state.schedule,
-        // yesterday's missed 'accounting' was permanently erased from the saved data. 
-        // Thus, the structural fix below cannot detect it for TODAY. We manually inject it for today only.
-        if (todayStrForCount === '2026-04-24') {
-            activeQueue = ['finance', 'accounting'];
-        }
-
         if (activeQueue[0] === s1a) activeQueue.push(s1b); else if (activeQueue[0] === s1b) activeQueue.push(s1a);
         if (activeQueue[1] === s2a) activeQueue.push(s2b); else if (activeQueue[1] === s2b) activeQueue.push(s2a);
 
@@ -372,6 +364,11 @@ window.StudyEngine = class {
                 if (idx > -1) activeQueue.splice(idx, 1);
                 activeQueue.unshift(s);
             });
+        }
+
+        // TEMPORARY BRIDGE: Override any corrupted past state for today specifically.
+        if (todayStrForCount === '2026-04-24') {
+            activeQueue = ['finance', 'accounting', 'cost_accounting', 'tax'];
         }
 
 
