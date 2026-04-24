@@ -309,8 +309,16 @@ window.StudyEngine = class {
         else if (subjectLastStudied[s2b] > subjectLastStudied[s2a]) next2 = s2a;
 
         let activeQueue = [next1, next2];
-        if (next1 === s1a) activeQueue.push(s1b); else activeQueue.push(s1a);
-        if (next2 === s2a) activeQueue.push(s2b); else activeQueue.push(s2a);
+        
+        // TEMPORARY BRIDGE: Because the old engine logic aggressively deleted missed tasks from this.state.schedule,
+        // yesterday's missed 'accounting' was permanently erased from the saved data. 
+        // Thus, the structural fix below cannot detect it for TODAY. We manually inject it for today only.
+        if (todayStrForCount === '2026-04-24') {
+            activeQueue = ['finance', 'accounting'];
+        }
+
+        if (activeQueue[0] === s1a) activeQueue.push(s1b); else if (activeQueue[0] === s1b) activeQueue.push(s1a);
+        if (activeQueue[1] === s2a) activeQueue.push(s2b); else if (activeQueue[1] === s2b) activeQueue.push(s2a);
 
         // STRUCTURAL FIX: Carry over missed subjects from yesterday
         // Look at yesterday's saved schedule. If a subject was scheduled but not actually studied yesterday,
@@ -929,19 +937,10 @@ window.StudyEngine = class {
             this.state.schedule[dt] = newSchedule[dt];
         }
         
-        let cleanTodayStr = this.getTodayStr();
-        for (let dt in this.state.schedule) {
-            if (dt < cleanTodayStr) {
-                this.state.schedule[dt] = this.state.schedule[dt].filter(t => {
-                    let hasHistory = this.state.historyMarkers && this.state.historyMarkers[dt] && this.state.historyMarkers[dt][t.chapter.id];
-                    let prog = this.state.progress[t.chapter.id];
-                    let isCompletedOnThisDay = prog && prog.status === 'completed' && prog.completedAt === dt;
-                    let isPartial = prog && prog.status === 'partial';
-                    return hasHistory || isCompletedOnThisDay || isPartial;
-                });
-            }
-        }
-
+        // Note: We deliberately KEEP uncompleted tasks in this.state.schedule for past dates.
+        // This allows the planner to show 'X' marks for missed tasks in the weekly/monthly view,
+        // and crucially allows the engine to detect what was missed yesterday to carry it over today.
+        
         this.saveState(true); 
       } catch (e) {
         console.error("Scheduling loop failed:", e);
