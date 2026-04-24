@@ -598,18 +598,22 @@ function initDashboard() {
                             // Determine O/X/△ marker
                             let markerState = (engine.state.historyMarkers && engine.state.historyMarkers[dateStr] && engine.state.historyMarkers[dateStr][t.chapter.id]) || null;
                             if (!markerState) {
-                                let p = engine.state.progress[t.chapter.id];
-                                if (p) {
-                                    if (p.status === 'completed' && p.completedAt) {
-                                        let cDateStr = new Date(p.completedAt).toISOString().split('T')[0];
-                                        markerState = (cDateStr <= dateStr) ? 'O' : 'X';
-                                    } else if (p.status === 'partial') {
-                                        markerState = '△';
+                                if (t.isReview) {
+                                    markerState = 'X';
+                                } else {
+                                    let p = engine.state.progress[t.chapter.id];
+                                    if (p) {
+                                        if (p.status === 'completed' && p.completedAt) {
+                                            let cDateStr = new Date(p.completedAt).toISOString().split('T')[0];
+                                            markerState = (cDateStr <= dateStr) ? 'O' : 'X';
+                                        } else if (p.status === 'partial') {
+                                            markerState = '△';
+                                        } else {
+                                            markerState = 'X';
+                                        }
                                     } else {
                                         markerState = 'X';
                                     }
-                                } else {
-                                    markerState = 'X';
                                 }
                             }
                             

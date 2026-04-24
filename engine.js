@@ -525,11 +525,36 @@ window.StudyEngine = class {
                 let yStr = `${yesterdayStr.getFullYear()}-${String(yesterdayStr.getMonth()+1).padStart(2,'0')}-${String(yesterdayStr.getDate()).padStart(2,'0')}`;
                 
                 let studiedYesterday = false;
-                if (newSchedule[yStr]) {
-                    studiedYesterday = newSchedule[yStr].some(t => t.subjectId === candidate && !t.isReview);
-                } else if (this.state.schedule && this.state.schedule[yStr]) {
-                    // For the very first day of simulation, look at actual history
-                    studiedYesterday = this.state.schedule[yStr].some(t => t.subjectId === candidate && !t.isReview);
+                if (yStr < todayStrForCount) {
+                    let compY = false;
+                    for (let k in this.state.progress) {
+                        let p = this.state.progress[k];
+                        if ((p.status === 'completed' || p.status === 'partial') && p.completedAt === yStr) {
+                            let subjK = null;
+                            for (let sKey in window.subjectData) {
+                                if (window.subjectData[sKey].chapters.find(c => String(c.id) === String(k))) subjK = sKey;
+                            }
+                            if (!subjK && String(k).endsWith('_obj')) subjK = 'tax';
+                            if (subjK === candidate) compY = true;
+                        }
+                    }
+                    if (this.state.historyMarkers && this.state.historyMarkers[yStr]) {
+                        for (let chId in this.state.historyMarkers[yStr]) {
+                            if (this.state.historyMarkers[yStr][chId] === 'O' || this.state.historyMarkers[yStr][chId] === '△') {
+                                let subjK = null;
+                                for (let sKey in window.subjectData) {
+                                    if (window.subjectData[sKey].chapters.find(c => String(c.id) === String(chId))) subjK = sKey;
+                                }
+                                if (!subjK && String(chId).endsWith('_obj')) subjK = 'tax';
+                                if (subjK === candidate) compY = true;
+                            }
+                        }
+                    }
+                    studiedYesterday = compY;
+                } else {
+                    if (newSchedule[yStr]) {
+                        studiedYesterday = newSchedule[yStr].some(t => t.subjectId === candidate && !t.isReview);
+                    }
                 }
                 
                 // Smart Rotation: If the candidate was studied yesterday, and we already picked at least 1 subject today, skip it to force alternation.
