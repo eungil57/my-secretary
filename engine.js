@@ -308,16 +308,63 @@ window.StudyEngine = class {
         if (subjectLastStudied[s2a] > subjectLastStudied[s2b]) next2 = s2b;
         else if (subjectLastStudied[s2b] > subjectLastStudied[s2a]) next2 = s2a;
 
-        // EMERGENCY ALIGNMENT: The user's progress state contradicts their expected rotation (likely due to missed manual overrides). 
-        // Force the starting pointers for today to match their explicit command. The algorithm will naturally rotate correctly starting tomorrow.
-        if (todayStrForCount === '2026-04-23' || todayStrForCount === '2026-04-24') {
-            next1 = 'finance';
-            next2 = 'accounting';
-        }
-        
         let activeQueue = [next1, next2];
         if (next1 === s1a) activeQueue.push(s1b); else activeQueue.push(s1a);
         if (next2 === s2a) activeQueue.push(s2b); else activeQueue.push(s2a);
+
+        // STRUCTURAL FIX: Carry over missed subjects from yesterday
+        // Look at yesterday's saved schedule. If a subject was scheduled but not actually studied yesterday,
+        // it means the user missed it. Put it at the front of the queue today so it carries over and pushes other subjects back.
+        let yesterdayForInit = new Date(todayStrForCount);
+        yesterdayForInit.setDate(yesterdayForInit.getDate() - 1);
+        let yInitStr = `${yesterdayForInit.getFullYear()}-${String(yesterdayForInit.getMonth()+1).padStart(2,'0')}-${String(yesterdayForInit.getDate()).padStart(2,'0')}`;
+        
+        let missedYesterdaySubjs = [];
+        if (this.state.schedule && this.state.schedule[yInitStr]) {
+            let scheduledYesterday = this.state.schedule[yInitStr].filter(t => !t.isReview).map(t => t.subjectId);
+            scheduledYesterday = [...new Set(scheduledYesterday)];
+            
+            for (let subj of scheduledYesterday) {
+                // Was it completed yesterday?
+                let compY = false;
+                for (let k in this.state.progress) {
+                    let p = this.state.progress[k];
+                    if ((p.status === 'completed' || p.status === 'partial') && p.completedAt === yInitStr) {
+                        let subjK = null;
+                        for (let sKey in window.subjectData) {
+                            if (window.subjectData[sKey].chapters.find(c => String(c.id) === String(k))) subjK = sKey;
+                        }
+                        if (!subjK && String(k).endsWith('_obj')) subjK = 'tax';
+                        if (subjK === subj) compY = true;
+                    }
+                }
+                if (this.state.historyMarkers && this.state.historyMarkers[yInitStr]) {
+                    for (let chId in this.state.historyMarkers[yInitStr]) {
+                        if (this.state.historyMarkers[yInitStr][chId] === 'O' || this.state.historyMarkers[yInitStr][chId] === '△') {
+                            let subjK = null;
+                            for (let sKey in window.subjectData) {
+                                if (window.subjectData[sKey].chapters.find(c => String(c.id) === String(chId))) subjK = sKey;
+                            }
+                            if (!subjK && String(chId).endsWith('_obj')) subjK = 'tax';
+                            if (subjK === subj) compY = true;
+                        }
+                    }
+                }
+                
+                if (!compY) {
+                    missedYesterdaySubjs.push(subj);
+                }
+            }
+        }
+        
+        // Put missed subjects at the front of the activeQueue so they are picked FIRST today!
+        if (missedYesterdaySubjs.length > 0) {
+            missedYesterdaySubjs.reverse().forEach(s => {
+                let idx = activeQueue.indexOf(s);
+                if (idx > -1) activeQueue.splice(idx, 1);
+                activeQueue.unshift(s);
+            });
+        }
 
 
 
