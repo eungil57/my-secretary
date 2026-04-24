@@ -310,8 +310,8 @@ window.StudyEngine = class {
 
         // EMERGENCY ALIGNMENT: The user's progress state contradicts their expected rotation (likely due to missed manual overrides). 
         // Force the starting pointers for today to match their explicit command. The algorithm will naturally rotate correctly starting tomorrow.
-        if (todayStrForCount === '2026-04-23') {
-            next1 = 'cost_accounting';
+        if (todayStrForCount === '2026-04-23' || todayStrForCount === '2026-04-24') {
+            next1 = 'finance';
             next2 = 'accounting';
         }
         
