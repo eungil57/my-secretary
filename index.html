@@ -10,21 +10,21 @@
     <!-- Local CSS -->
     <link rel="stylesheet" href="style.css?v=44">
     <!-- Application Logic -->
-    <script src="data.js?v=48"></script>
-    <script src="engine.js?v=48"></script>
-    <script src="app.js?v=48"></script>
+    <script src="data.js?v=49"></script>
+    <script src="engine.js?v=49"></script>
+    <script src="app.js?v=49"></script>
     <!-- Bible Data and App -->
-    <script src="bible-data.js?v=48"></script>
-    <script src="bible-app.js?v=48"></script>
+    <script src="bible-data.js?v=49"></script>
+    <script src="bible-app.js?v=49"></script>
     <!-- Kinder English App -->
-    <script src="english-data.js?v=48"></script>
-    <script src="english-app.js?v=48"></script>
+    <script src="english-data.js?v=49"></script>
+    <script src="english-app.js?v=49"></script>
     <!-- Firebase Sync -->
-    <script type="module" src="firebase-config.js?v=48"></script>
+    <script type="module" src="firebase-config.js?v=49"></script>
 
-    <!-- Mobile Drag and Drop Polyfill (Only load on touch devices) -->
+    <!-- Mobile Drag and Drop Polyfill (Only load on mobile phones/tablets) -->
     <script>
-        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
             document.write('<script src="https://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js"><\\/script>');
         }
     </script>
