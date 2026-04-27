@@ -474,10 +474,11 @@ window.StudyEngine = class {
                     if (customH !== undefined) {
                         canDo = Math.min(required, customH);
                     } else {
+                        let taskLimit = (dt.sub === 'tax') ? 4.0 : 3.0;
                         if (isExplicitOverride) {
-                            canDo = Math.min(required, baseHours); // Bypass effectiveBaseHours for forced drag&drop
+                            canDo = Math.min(required, taskLimit); // Bypass effectiveBaseHours but still cap at 3 or 4 hrs!
                         } else {
-                            canDo = Math.min(required, baseHours, effectiveBaseHours); 
+                            canDo = Math.min(required, taskLimit, effectiveBaseHours); 
                         }
                     }
                     
