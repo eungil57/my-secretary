@@ -10,17 +10,17 @@
     <!-- Local CSS -->
     <link rel="stylesheet" href="style.css?v=44">
     <!-- Application Logic -->
-    <script src="data.js?v=52"></script>
-    <script src="engine.js?v=52"></script>
-    <script src="app.js?v=52"></script>
+    <script src="data.js?v=53"></script>
+    <script src="engine.js?v=53"></script>
+    <script src="app.js?v=53"></script>
     <!-- Bible Data and App -->
-    <script src="bible-data.js?v=52"></script>
-    <script src="bible-app.js?v=52"></script>
+    <script src="bible-data.js?v=53"></script>
+    <script src="bible-app.js?v=53"></script>
     <!-- Kinder English App -->
-    <script src="english-data.js?v=52"></script>
-    <script src="english-app.js?v=52"></script>
+    <script src="english-data.js?v=53"></script>
+    <script src="english-app.js?v=53"></script>
     <!-- Firebase Sync -->
-    <script type="module" src="firebase-config.js?v=52"></script>
+    <script type="module" src="firebase-config.js?v=53"></script>
 
     <!-- Mobile Drag and Drop Polyfill (Only load on mobile phones/tablets) -->
     <script>
@@ -149,21 +149,5 @@
             </div>
         </div>
     </div>
-    <div id="debug-overlay" style="position:fixed; bottom:10px; right:10px; background:rgba(0,0,0,0.8); color:#0f0; padding:10px; z-index:99999; font-size:12px; max-height:200px; overflow-y:auto; pointer-events:none; border-radius:5px; font-family:monospace; display:none;"></div>
-    <script>
-        window.dragLogs = 0;
-        function logDrag(msg) {
-            let ov = document.getElementById('debug-overlay');
-            if(ov) {
-                ov.style.display = 'block';
-                ov.innerHTML += msg + '<br>';
-                ov.scrollTop = ov.scrollHeight;
-                if(window.dragLogs++ > 20) ov.innerHTML = ''; // clear if too many
-            }
-        }
-        document.addEventListener('dragstart', (e) => { logDrag('dragstart on: ' + (e.target.className || e.target.tagName)); });
-        document.addEventListener('dragend', (e) => { logDrag('dragend'); });
-        document.addEventListener('drop', (e) => { logDrag('drop'); });
-    </script>
 </body>
 </html>

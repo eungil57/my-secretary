@@ -1807,7 +1807,6 @@ window.dropTask = (event, dateStr) => {
     let historyId = event.dataTransfer.getData('text/history');
     
     if (historyId) {
-        if (typeof logDrag === 'function') logDrag('history drop: ' + historyId);
         if (engine.state.progress[historyId]) {
             engine.state.progress[historyId].completedAt = dateStr;
             if (engine.state.settings.taskDateOverrides && engine.state.settings.taskDateOverrides[historyId]) {
@@ -1827,13 +1826,9 @@ window.dropTask = (event, dateStr) => {
             let payload = JSON.parse(payloadStr);
             id = payload.id;
             sourceDate = payload.sourceDate;
-        } catch(e) {
-            if (typeof logDrag === 'function') logDrag('JSON error');
-        }
+        } catch(e) {}
     }
     if (!id) id = event.dataTransfer.getData('text/plain');
-    if (typeof logDrag === 'function') logDrag('parsed id: ' + id + ', src: ' + sourceDate + ', to: ' + dateStr);
-    
     if (!id) return;
     
     if (!engine.state.settings.taskDateOverrides) engine.state.settings.taskDateOverrides = {};
