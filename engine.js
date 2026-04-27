@@ -427,6 +427,13 @@ window.StudyEngine = class {
                 for (let dt of deferredTasks[dateStr]) {
                     if (!dt.chapter || !dt.chapter.id) continue;
                     
+                    let isExplicitOverride = false;
+                    let ov = (this.state.settings.taskDateOverrides || {})[dt.chapter.id];
+                    if (ov) {
+                        if (Array.isArray(ov) && ov.includes(dateStr)) isExplicitOverride = true;
+                        else if (ov === dateStr) isExplicitOverride = true;
+                    }
+
                     if (!subjectsWithDeferredToday.includes(dt.sub)) {
                         let conflict = false;
                         if (effectiveBaseHours < 8.0 && subjectsWithDeferredToday.length > 0) {
@@ -436,7 +443,7 @@ window.StudyEngine = class {
                             }
                         }
                         
-                        if (conflict || subjectsWithDeferredToday.length >= tempMaxSubj) {
+                        if (!isExplicitOverride && (conflict || subjectsWithDeferredToday.length >= tempMaxSubj)) {
                             deferredSpillover.push(dt);
                             continue;
                         }
@@ -466,20 +473,23 @@ window.StudyEngine = class {
                     if (customH !== undefined) {
                         canDo = Math.min(required, customH);
                     } else {
-                        // Cap manually overriden tasks to the max daily hours (e.g., 5.5) AND effectiveBaseHours!
-                        canDo = Math.min(required, baseHours, effectiveBaseHours); 
+                        if (isExplicitOverride) {
+                            canDo = Math.min(required, baseHours); // Bypass effectiveBaseHours for forced drag&drop
+                        } else {
+                            canDo = Math.min(required, baseHours, effectiveBaseHours); 
+                        }
                     }
                     
-                    if (effectiveBaseHours <= 0.05) {
+                    if (!isExplicitOverride && effectiveBaseHours <= 0.05) {
                         deferredSpillover.push(dt);
                         continue;
                     }
                     
                     let scheduledForThisSubjToday = (newSchedule[dateStr] || []).filter(t => t.subjectId === dt.sub && !t.isReview).length;
-                    if (canDo < required && scheduledForThisSubjToday > 0) {
+                    if (!isExplicitOverride && canDo < required && scheduledForThisSubjToday > 0) {
                         deferredSpillover.push(dt);
                         continue;
-                    } else if (canDo <= 0.5 && required > 0.5 && customH === undefined) {
+                    } else if (!isExplicitOverride && canDo <= 0.5 && required > 0.5 && customH === undefined) {
                         deferredSpillover.push(dt);
                         continue;
                     }
