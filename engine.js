@@ -718,7 +718,7 @@ window.StudyEngine = class {
                                         // Feature: Scale review time by actual time spent during 1st pass
                                         let timeRatio = 1.0;
                                         if (p && p.spentHours > 0) {
-                                            let baseH = ch.weight !== undefined ? (ch.weight * 1.5) : (window.HOURS_PER_DIFF[ch.difficulty] || 2.0);
+                                            let baseH = ch.weight !== undefined ? (ch.weight * 1.5) : (HOURS_PER_DIFF[ch.difficulty] || 2.0);
                                             if (subjKey === 'tax') baseH *= 2.0;
                                             timeRatio = p.spentHours / baseH;
                                             // Cap the ratio between 0.5x and 2.5x
