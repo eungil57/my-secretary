@@ -1856,6 +1856,29 @@ window.dropTask = (event, dateStr) => {
     if (!engine.state.settings.extraStudyDays) engine.state.settings.extraStudyDays = [];
     if (!engine.state.settings.extraStudyDays.includes(dateStr)) engine.state.settings.extraStudyDays.push(dateStr);
     
+    let todayStr = engine.getTodayStr();
+    
+    // Manually manipulate historical schedule for past dates
+    // because generateSchedule only regenerates from today onwards.
+    if (sourceDate && sourceDate < todayStr) {
+        if (engine.state.schedule[sourceDate]) {
+            engine.state.schedule[sourceDate] = engine.state.schedule[sourceDate].filter(t => String(t.chapter.id) !== String(id));
+        }
+    }
+    
+    if (dateStr < todayStr) {
+        if (!engine.state.schedule[dateStr]) engine.state.schedule[dateStr] = [];
+        let subjInfo = window.findSubjectOfChapter(id);
+        if (subjInfo && !engine.state.schedule[dateStr].some(t => String(t.chapter.id) === String(id))) {
+            engine.state.schedule[dateStr].push({
+                subjectId: subjInfo.subjKey,
+                chapter: subjInfo.chapter,
+                allocated: 1.5,
+                isReview: false
+            });
+        }
+    }
+    
     engine.saveState();
     engine.generateSchedule();
     initDashboard();
