@@ -912,8 +912,10 @@ window.StudyEngine = class {
         // and crucially allows the engine to detect what was missed yesterday to carry it over today.
         
         this.saveState(true); 
+        if (typeof logDrag === 'function') logDrag('generateSchedule SUCCESS');
       } catch (e) {
         console.error("Scheduling loop failed:", e);
+        if (typeof logDrag === 'function') logDrag('ERROR: ' + e.message);
         if (!this.state.schedule) this.state.schedule = {};
       }
     }

@@ -619,12 +619,12 @@ function initDashboard() {
                             
                             let markerColor = markerState === 'O' ? '#ef4444' : (markerState === 'X' ? '#dc2626' : '#f59e0b');
                             
-                            return `<div class="mini-badge" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}')" style="background: ${color}22; border: 1px solid ${color}44; display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; cursor: grab; opacity: 0.55; filter: grayscale(20%); user-select: none; -webkit-user-select: none;">
+                            return `<div class="mini-badge" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}')" style="background: ${color}22; border: 1px solid ${color}44; display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; cursor: grab; opacity: 0.55; filter: grayscale(20%);">
                                 <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem; color: ${color}; font-weight: 600; max-width: 80%; pointer-events: none;" title="${prefix}${subj.name} - ${t.chapter.title}">${prefix}${shortName} - ${titlePart}</span>
                                 <span style="cursor: pointer; font-size: 1.1rem; font-weight: 900; color: ${markerColor}; text-shadow: 0 1px 2px rgba(0,0,0,0.1); width: 20px; text-align: center; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#ffffff99'" onmouseout="this.style.background='transparent'" onclick="window.togglePastMarker('${dateStr}', '${t.chapter.id}')">${markerState}</span>
                             </div>`;
                         } else {
-                            return `<div class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}44; cursor: grab; font-weight: 600; user-select: none; -webkit-user-select: none;" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}')">
+                            return `<div class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}44; cursor: grab; font-weight: 600;" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}')">
                                 <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem; pointer-events: none;" title="${prefix}${subj.name} - ${t.chapter.title}">${prefix}${shortName} - ${titlePart}</span>
                                 <span style="flex-shrink:0; margin-left:4px; opacity: 0.8; cursor: pointer; font-size: 0.8rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'" onclick="window.editTaskHours('${dateStr}', '${t.chapter.id}', ${t.allocated.toFixed(1)}); event.stopPropagation();" title="당일 배분 시간 조절">${t.allocated.toFixed(1)}H</span>
                             </div>`;
@@ -1807,6 +1807,7 @@ window.dropTask = (event, dateStr) => {
     let historyId = event.dataTransfer.getData('text/history');
     
     if (historyId) {
+        if (typeof logDrag === 'function') logDrag('history drop: ' + historyId);
         if (engine.state.progress[historyId]) {
             engine.state.progress[historyId].completedAt = dateStr;
             if (engine.state.settings.taskDateOverrides && engine.state.settings.taskDateOverrides[historyId]) {
@@ -1826,9 +1827,13 @@ window.dropTask = (event, dateStr) => {
             let payload = JSON.parse(payloadStr);
             id = payload.id;
             sourceDate = payload.sourceDate;
-        } catch(e) {}
+        } catch(e) {
+            if (typeof logDrag === 'function') logDrag('JSON error');
+        }
     }
     if (!id) id = event.dataTransfer.getData('text/plain');
+    if (typeof logDrag === 'function') logDrag('parsed id: ' + id + ', src: ' + sourceDate + ', to: ' + dateStr);
+    
     if (!id) return;
     
     if (!engine.state.settings.taskDateOverrides) engine.state.settings.taskDateOverrides = {};
