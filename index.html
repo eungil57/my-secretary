@@ -10,17 +10,24 @@
     <!-- Local CSS -->
     <link rel="stylesheet" href="style.css?v=44">
     <!-- Application Logic -->
-    <script src="data.js?v=44"></script>
-    <script src="engine.js?v=44"></script>
-    <script src="app.js?v=44"></script>
+    <script src="data.js?v=45"></script>
+    <script src="engine.js?v=45"></script>
+    <script src="app.js?v=45"></script>
     <!-- Bible Data and App -->
-    <script src="bible-data.js?v=44"></script>
-    <script src="bible-app.js?v=44"></script>
+    <script src="bible-data.js?v=45"></script>
+    <script src="bible-app.js?v=45"></script>
     <!-- Kinder English App -->
-    <script src="english-data.js?v=44"></script>
-    <script src="english-app.js?v=44"></script>
+    <script src="english-data.js?v=45"></script>
+    <script src="english-app.js?v=45"></script>
     <!-- Firebase Sync -->
-    <script type="module" src="firebase-config.js?v=44"></script>
+    <script type="module" src="firebase-config.js?v=45"></script>
+
+    <!-- Mobile Drag and Drop Polyfill (Only load on touch devices) -->
+    <script>
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            document.write('<script src="https://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js"><\\/script>');
+        }
+    </script>
 
     <style>
         /* Scoped CSS to revert Bible Tracker to its original Theme (Blue/White) */
