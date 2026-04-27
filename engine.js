@@ -197,12 +197,13 @@ window.StudyEngine = class {
                     }
                     
                     if (!this.isCompleted(chId)) {
-                        // USER REQUEST: Past missed overrides should return to natural flow, not forcefully flood today.
+                        // USER REQUEST: Missed overrides should be pushed to today instead of disappearing into natural flow.
                         let newOv = [];
                         let changed = false;
                         ov.forEach(d => {
                             if (d < todayStrForCount) {
-                                // Do not push to today, effectively dropping the override and letting it schedule naturally
+                                // Push missed override to today
+                                newOv.push(todayStrForCount);
                                 changed = true;
                             } else {
                                 newOv.push(d);
@@ -225,8 +226,8 @@ window.StudyEngine = class {
                         delete this.state.settings.taskDateOverrides[chId];
                         needsSave = true;
                     } else if (this.state.settings.taskDateOverrides[chId] < todayStrForCount) {
-                        // USER REQUEST: Past missed overrides should return to natural flow
-                        delete this.state.settings.taskDateOverrides[chId];
+                        // USER REQUEST: Missed override should be pushed to today
+                        this.state.settings.taskDateOverrides[chId] = todayStrForCount;
                         needsSave = true;
                     }
                 }
