@@ -286,13 +286,13 @@ function initDashboard() {
                 } else if (isPartial) {
                     controlsHtml = `
                         <div style="color: #d97706; font-weight: 800; padding: 4px 10px; background: #fffbeb; border-radius: 12px; border: 1px dashed #fde68a; margin-right: 0.5rem; font-size: 0.85rem;">진행중 🏃‍♂️</div>
-                        <button style="background: white; border: 2px solid ${color}; color: ${color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 1.1rem;" onmouseover="this.style.background='${color}11'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.transform='scale(1)'" onclick="window.appComplete('${chId}', ${t.allocated}, ${t.isReview ? 'true' : 'false'})" title="완료">
+                        <button style="background: white; border: 2px solid ${color}; color: ${color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 1.1rem;" onmouseover="this.style.background='${color}11'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.transform='scale(1)'" onclick="window.appComplete('${chId}', ${t.allocated}, ${t.isReview ? 'true' : 'false'}, ${t.isReview && t.reviewDay !== undefined ? `'${t.reviewDay}'` : 'null'})" title="완료">
                             ✓
                         </button>
                     `;
                 } else {
                     controlsHtml = `
-                        <button style="background: white; border: 2px solid ${color}; color: ${color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 1.1rem;" onmouseover="this.style.background='${color}11'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.transform='scale(1)'" onclick="window.appComplete('${chId}', ${t.allocated}, ${t.isReview ? 'true' : 'false'})" title="완료">
+                        <button style="background: white; border: 2px solid ${color}; color: ${color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 1.1rem;" onmouseover="this.style.background='${color}11'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.transform='scale(1)'" onclick="window.appComplete('${chId}', ${t.allocated}, ${t.isReview ? 'true' : 'false'}, ${t.isReview && t.reviewDay !== undefined ? `'${t.reviewDay}'` : 'null'})" title="완료">
                             ✓
                         </button>
                         <button style="background: white; border: 2px dashed var(--text-muted); color: var(--text-muted); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-weight: 800; font-size: 1rem;" onmouseover="this.style.background='#f8fafc'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='white'; this.style.transform='scale(1)'" onclick="window.appPartial('${chId}', ${t.allocated})" title="진행중">
@@ -466,7 +466,7 @@ function initDashboard() {
                                 <span style="font-size: 0.75rem; color: ${color}; font-weight: 800; letter-spacing: 0.5px;">${subj.name}</span>
                                 <span style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); line-height: 1.4;">${prefix}<del style="color:var(--text-muted);">${t.chapter.title}</del></span>
                             </div>
-                            <button class="btn btn-secondary" style="border: 1px solid ${color}; color: ${color}; padding: 0.4rem 0.8rem; font-size: 0.85rem; font-weight: 800; height: fit-content; border-radius: 4px; background: white;" onmouseover="this.style.background='${color}11'" onmouseout="this.style.background='white'" onclick="window.appCompletePast('${chId}', '${t.pastDateStr}', ${t.allocated})">
+                            <button class="btn btn-secondary" style="border: 1px solid ${color}; color: ${color}; padding: 0.4rem 0.8rem; font-size: 0.85rem; font-weight: 800; height: fit-content; border-radius: 4px; background: white;" onmouseover="this.style.background='${color}11'" onmouseout="this.style.background='white'" onclick="window.appCompletePast('${chId}', '${t.pastDateStr}', ${t.allocated}, ${t.isReview ? 'true' : 'false'}, ${t.isReview && t.reviewDay !== undefined ? `'${t.reviewDay}'` : 'null'})">
                                 어제 완료 ✓
                             </button>
                         </div>
@@ -833,8 +833,8 @@ function createTaskCard(type, chapter, subject, allocatedHours, overrideColor, i
             <p class="task-details">과정 난이도를 반영한 소요 예상: ${estTime}시간</p>
             
             <div class="task-actions">
-                <button class="btn btn-primary" style="background: ${overrideColor}; color: #334155" onclick="window.appComplete('${chapter.id}')">✅ 학습 완료</button>
-                <button class="btn btn-secondary" onclick="window.appPartial('${chapter.id}')">⏱️ 부분 완료...</button>
+                <button class="btn btn-primary" style="background: ${overrideColor}; color: #334155" onclick="window.appComplete('${chapter.id}', ${isReview}, ${isReview ? `'${reviewDay}'` : 'null'})">✅ 학습 완료</button>
+                ${!isReview ? `<button class="btn btn-secondary" onclick="window.appPartial('${chapter.id}')">⏱️ 부분 완료...</button>` : ''}
             </div>
         </div>
     `;
@@ -855,20 +855,20 @@ function createMiniTaskCard(type, chapter, subject, allocatedHours, overrideColo
     `;
 }
 
-window.appCompletePast = (chapterId, pastDateStr, allocatedHours) => {
-    window.openPacingCompletionModal(chapterId, allocatedHours, pastDateStr);
+window.appCompletePast = (chapterId, pastDateStr, allocatedHours, isReview = false, reviewDay = null) => {
+    window.openPacingCompletionModal(chapterId, allocatedHours, pastDateStr, isReview, reviewDay);
 };
 
-window.appComplete = (chapterId, allocatedHours) => {
-    window.openPacingCompletionModal(chapterId, allocatedHours);
+window.appComplete = (chapterId, allocatedHours, isReview = false, reviewDay = null) => {
+    window.openPacingCompletionModal(chapterId, allocatedHours, null, isReview, reviewDay);
 };
 
 window.appPartial = (chapterId, allocatedHours) => {
     window.openPacingCompletionModal(chapterId, allocatedHours);
 };
 
-window.openPacingCompletionModal = (chapterId, allocatedHours, pastDateStr = null) => {
-    window.currentCompletingChapter = { id: chapterId, hours: allocatedHours, pastDateStr: pastDateStr };
+window.openPacingCompletionModal = (chapterId, allocatedHours, pastDateStr = null, isReview = false, reviewDay = null) => {
+    window.currentCompletingChapter = { id: chapterId, hours: allocatedHours, pastDateStr: pastDateStr, isReview: isReview, reviewDay: reviewDay };
     
     let modal = document.getElementById('unified-completion-modal');
     if (!modal) {
@@ -961,7 +961,7 @@ window.submitUnifiedProgress = () => {
     let bookmark = document.getElementById('modal-bookmark-val').value.trim();
 
     if (progress === 100) {
-        engine.markCompleted(c.id, c.pastDateStr || null, actualHours * 60, feedback);
+        engine.markCompleted(c.id, c.pastDateStr || null, actualHours * 60, feedback, c.isReview, c.reviewDay);
     } else {
         engine.markPartial(c.id, progress, actualHours * 60, feedback, bookmark || `${progress}% 지점`);
     }

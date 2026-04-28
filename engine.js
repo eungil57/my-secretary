@@ -284,24 +284,6 @@ window.StudyEngine = class {
         let trackingCompleted = {}; 
         window.__projectedReviewTiers = {};
         
-        // USER REQUEST: "주진도 끝냈는데 복습을 안했으면 그건 그냥 넘어가게 만들어줘"
-        // If a review was scheduled in the past but the user didn't do it, they don't want it to carry over.
-        // We pre-fill __projectedReviewTiers with past scheduled reviews so the engine thinks we've already passed them!
-        if (this.state.schedule) {
-            for (let dStr in this.state.schedule) {
-                if (dStr < todayStrForCount) {
-                    for (let t of this.state.schedule[dStr]) {
-                        if (t.isReview && t.reviewDay !== undefined) {
-                            let tier = typeof t.reviewDay === 'number' ? t.reviewDay : 0;
-                            if (tier > (window.__projectedReviewTiers[t.chapter.id] || 0)) {
-                                window.__projectedReviewTiers[t.chapter.id] = tier;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
         let subjectLastStudied = { tax: '', accounting: '', cost_accounting: '', finance: '' };
         for (let k in this.state.progress) {
             let p = this.state.progress[k];
@@ -728,9 +710,16 @@ window.StudyEngine = class {
                                     continue;
                                 }
 
-                                // Find the highest mathematical review tier that we have passed
-                                let revDaysRev = [...reviewDays].reverse();
-                                let targetTier = revDaysRev.find(d => diffDays >= d);
+                                // Find the FIRST uncompleted review tier that is due
+                                let targetTier = null;
+                                for (let d of reviewDays) {
+                                    if (diffDays >= d) {
+                                        if (!p.completedReviews || !p.completedReviews.includes(d)) {
+                                            targetTier = d;
+                                            break;
+                                        }
+                                    }
+                                }
                                 
                                 if (targetTier) {
                                     // Ensure we haven't already scheduled this tier (or a higher one) for this chapter in the projection
@@ -966,23 +955,35 @@ window.StudyEngine = class {
         return this.state.schedule[dateStr] || [];
     }
 
-    markCompleted(chapterId, pastDateStr = null, actualMinutes = null, feedback = null) {
+    markCompleted(chapterId, pastDateStr = null, actualMinutes = null, feedback = null, isReview = false, reviewDay = null) {
         let p = this.state.progress[chapterId] || {};
-        this.state.progress[chapterId] = { 
-            status: 'completed', 
-            ratio: 1.0,
-            completedAt: pastDateStr || this.getTodayStr(),
-            spentHours: (p.spentHours || 0) + (actualMinutes ? actualMinutes / 60 : 0),
-            feedback: feedback || p.feedback || 'normal'
-        };
         
-        if (this.state.bookmarks && this.state.bookmarks[chapterId]) {
-            delete this.state.bookmarks[chapterId];
-        }
-        
-        // FIX: Clear manual scheduling overrides once the task is completed
-        if (this.state.settings.taskDateOverrides && this.state.settings.taskDateOverrides[chapterId]) {
-            delete this.state.settings.taskDateOverrides[chapterId];
+        if (isReview && reviewDay !== null) {
+            if (!p.completedReviews) p.completedReviews = [];
+            if (!p.completedReviews.includes(reviewDay)) p.completedReviews.push(reviewDay);
+            
+            // Clear manual scheduling overrides for this review tier if it existed
+            if (this.state.settings.reviewDateOverrides && this.state.settings.reviewDateOverrides[chapterId]) {
+                delete this.state.settings.reviewDateOverrides[chapterId][reviewDay];
+            }
+        } else {
+            this.state.progress[chapterId] = { 
+                status: 'completed', 
+                ratio: 1.0,
+                completedAt: pastDateStr || this.getTodayStr(),
+                spentHours: (p.spentHours || 0) + (actualMinutes ? actualMinutes / 60 : 0),
+                feedback: feedback || p.feedback || 'normal',
+                completedReviews: p.completedReviews || []
+            };
+            
+            if (this.state.bookmarks && this.state.bookmarks[chapterId]) {
+                delete this.state.bookmarks[chapterId];
+            }
+            
+            // FIX: Clear manual scheduling overrides once the task is completed
+            if (this.state.settings.taskDateOverrides && this.state.settings.taskDateOverrides[chapterId]) {
+                delete this.state.settings.taskDateOverrides[chapterId];
+            }
         }
         
         let completionDateStr = pastDateStr || this.getTodayStr();
