@@ -234,6 +234,17 @@ window.StudyEngine = class {
             }
         }
         
+        if (this.state.settings.reviewDateOverrides) {
+            for (let chId in this.state.settings.reviewDateOverrides) {
+                for (let offset in this.state.settings.reviewDateOverrides[chId]) {
+                    if (this.state.settings.reviewDateOverrides[chId][offset] < todayStrForCount) {
+                        this.state.settings.reviewDateOverrides[chId][offset] = todayStrForCount;
+                        needsSave = true;
+                    }
+                }
+            }
+        }
+        
         for (let sub in pending) {
             let regular = [];
             for (let ch of pending[sub]) {
@@ -709,6 +720,16 @@ window.StudyEngine = class {
                                     let highestScheduledTier = window.__projectedReviewTiers[ch.id] || 0;
                                     
                                     if (targetTier > highestScheduledTier) {
+                                        let isOverridden = false;
+                                        if (this.state.settings.reviewDateOverrides && this.state.settings.reviewDateOverrides[ch.id] && this.state.settings.reviewDateOverrides[ch.id][targetTier]) {
+                                            let targetDate = this.state.settings.reviewDateOverrides[ch.id][targetTier];
+                                            if (targetDate !== dateStr) {
+                                                continue; // Skip it today, it belongs to another date!
+                                            } else {
+                                                isOverridden = true; // It belongs to today!
+                                            }
+                                        }
+
                                         // This is the FIRST time we are evaluating a valid subject day for this required tier!
                                         // Mark it projected as scheduled.
                                         window.__projectedReviewTiers[ch.id] = targetTier;
@@ -728,7 +749,11 @@ window.StudyEngine = class {
                                         
                                         let dur = (reviewTiers[targetTier] || 0.5) * fbMult * timeRatio;
                                         
-                                        availableReviewsToday.push({ subjKey, ch, dur, diffDays: targetTier });
+                                        if (isOverridden) {
+                                            overridingReviews.push({ subjKey, ch, dur, diffDays: targetTier });
+                                        } else {
+                                            availableReviewsToday.push({ subjKey, ch, dur, diffDays: targetTier });
+                                        }
                                     }
                                 }
                             }

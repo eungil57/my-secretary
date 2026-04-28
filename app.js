@@ -619,12 +619,18 @@ function initDashboard() {
                             
                             let markerColor = markerState === 'O' ? '#ef4444' : (markerState === 'X' ? '#dc2626' : '#f59e0b');
                             
-                            return `<div class="mini-badge" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}')" style="background: ${color}22; border: 1px solid ${color}44; display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; cursor: grab; opacity: 0.55; filter: grayscale(20%);">
+                            let badgeIsReview = t.isReview ? 'true' : 'false';
+                            let badgeReviewDay = t.isReview && t.reviewDay !== undefined ? `'${t.reviewDay}'` : 'null';
+                            
+                            return `<div class="mini-badge" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}', ${badgeIsReview}, ${badgeReviewDay})" style="background: ${color}22; border: 1px solid ${color}44; display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; cursor: grab; opacity: 0.55; filter: grayscale(20%);">
                                 <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem; color: ${color}; font-weight: 600; max-width: 80%; pointer-events: none;" title="${prefix}${subj.name} - ${t.chapter.title}">${prefix}${shortName} - ${titlePart}</span>
                                 <span style="cursor: pointer; font-size: 1.1rem; font-weight: 900; color: ${markerColor}; text-shadow: 0 1px 2px rgba(0,0,0,0.1); width: 20px; text-align: center; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#ffffff99'" onmouseout="this.style.background='transparent'" onclick="window.togglePastMarker('${dateStr}', '${t.chapter.id}')">${markerState}</span>
                             </div>`;
                         } else {
-                            return `<div class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}44; cursor: grab; font-weight: 600;" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}')">
+                            let badgeIsReview = t.isReview ? 'true' : 'false';
+                            let badgeReviewDay = t.isReview && t.reviewDay !== undefined ? `'${t.reviewDay}'` : 'null';
+                            
+                            return `<div class="mini-badge" style="background: ${color}22; color: ${color}; border: 1px solid ${color}44; cursor: grab; font-weight: 600;" draggable="true" ondragstart="window.dragTaskStart(event, '${t.chapter.id}', '${dateStr}', ${badgeIsReview}, ${badgeReviewDay})">
                                 <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem; pointer-events: none;" title="${prefix}${subj.name} - ${t.chapter.title}">${prefix}${shortName} - ${titlePart}</span>
                                 <span style="flex-shrink:0; margin-left:4px; opacity: 0.8; cursor: pointer; font-size: 0.8rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'" onclick="window.editTaskHours('${dateStr}', '${t.chapter.id}', ${t.allocated.toFixed(1)}); event.stopPropagation();" title="당일 배분 시간 조절">${t.allocated.toFixed(1)}H</span>
                             </div>`;
@@ -1791,9 +1797,9 @@ window.cancelComplete = (id) => {
     window.customAlert('✅ 학습 완료 기록이 취소되어 오늘 할 일로 돌아왔습니다.');
 };
 
-window.dragTaskStart = (event, id, sourceDate) => {
+window.dragTaskStart = (event, id, sourceDate, isReview = false, reviewDay = null) => {
     event.dataTransfer.effectAllowed = 'move';
-    let payload = { id: id, sourceDate: sourceDate };
+    let payload = { id: id, sourceDate: sourceDate, isReview: isReview, reviewDay: reviewDay };
     event.dataTransfer.setData('application/json', JSON.stringify(payload));
     event.dataTransfer.setData('text/plain', id);
 };
@@ -1820,38 +1826,46 @@ window.dropTask = (event, dateStr) => {
     }
 
     let payloadStr = event.dataTransfer.getData('application/json');
-    let id, sourceDate;
+    let id, sourceDate, isReview, reviewDay;
     if (payloadStr) {
         try {
             let payload = JSON.parse(payloadStr);
             id = payload.id;
             sourceDate = payload.sourceDate;
+            isReview = payload.isReview;
+            reviewDay = payload.reviewDay;
         } catch(e) {}
     }
     if (!id) id = event.dataTransfer.getData('text/plain');
     if (!id) return;
     
-    if (!engine.state.settings.taskDateOverrides) engine.state.settings.taskDateOverrides = {};
-    
-    let currentOv = engine.state.settings.taskDateOverrides[id];
-    let arr = [];
-    if (Array.isArray(currentOv)) arr = [...currentOv];
-    else if (currentOv) arr = [currentOv];
-    
-    if (sourceDate) {
-        if (arr.includes(sourceDate)) {
-            arr = arr.filter(d => d !== sourceDate);
-        }
+    if (isReview && reviewDay !== null) {
+        if (!engine.state.settings.reviewDateOverrides) engine.state.settings.reviewDateOverrides = {};
+        if (!engine.state.settings.reviewDateOverrides[id]) engine.state.settings.reviewDateOverrides[id] = {};
+        engine.state.settings.reviewDateOverrides[id][reviewDay] = dateStr;
     } else {
-        arr = [];
+        if (!engine.state.settings.taskDateOverrides) engine.state.settings.taskDateOverrides = {};
+        
+        let currentOv = engine.state.settings.taskDateOverrides[id];
+        let arr = [];
+        if (Array.isArray(currentOv)) arr = [...currentOv];
+        else if (currentOv) arr = [currentOv];
+        
+        if (sourceDate) {
+            if (arr.includes(sourceDate)) {
+                arr = arr.filter(d => d !== sourceDate);
+            }
+        } else {
+            arr = [];
+        }
+        
+        if (!arr.includes(dateStr)) {
+            arr.push(dateStr);
+        }
+        arr.sort();
+        
+        engine.state.settings.taskDateOverrides[id] = arr;
     }
-    
-    if (!arr.includes(dateStr)) {
-        arr.push(dateStr);
-    }
-    arr.sort();
-    
-    engine.state.settings.taskDateOverrides[id] = arr;
     
     if (!engine.state.settings.extraStudyDays) engine.state.settings.extraStudyDays = [];
     if (!engine.state.settings.extraStudyDays.includes(dateStr)) engine.state.settings.extraStudyDays.push(dateStr);
