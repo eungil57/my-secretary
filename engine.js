@@ -238,7 +238,7 @@ window.StudyEngine = class {
             for (let chId in this.state.settings.reviewDateOverrides) {
                 for (let offset in this.state.settings.reviewDateOverrides[chId]) {
                     if (this.state.settings.reviewDateOverrides[chId][offset] < todayStrForCount) {
-                        this.state.settings.reviewDateOverrides[chId][offset] = todayStrForCount;
+                        delete this.state.settings.reviewDateOverrides[chId][offset];
                         needsSave = true;
                     }
                 }
@@ -283,6 +283,24 @@ window.StudyEngine = class {
 
         let trackingCompleted = {}; 
         window.__projectedReviewTiers = {};
+        
+        // USER REQUEST: "주진도 끝냈는데 복습을 안했으면 그건 그냥 넘어가게 만들어줘"
+        // If a review was scheduled in the past but the user didn't do it, they don't want it to carry over.
+        // We pre-fill __projectedReviewTiers with past scheduled reviews so the engine thinks we've already passed them!
+        if (this.state.schedule) {
+            for (let dStr in this.state.schedule) {
+                if (dStr < todayStrForCount) {
+                    for (let t of this.state.schedule[dStr]) {
+                        if (t.isReview && t.reviewDay !== undefined) {
+                            let tier = typeof t.reviewDay === 'number' ? t.reviewDay : 0;
+                            if (tier > (window.__projectedReviewTiers[t.chapter.id] || 0)) {
+                                window.__projectedReviewTiers[t.chapter.id] = tier;
+                            }
+                        }
+                    }
+                }
+            }
+        }
         
         let subjectLastStudied = { tax: '', accounting: '', cost_accounting: '', finance: '' };
         for (let k in this.state.progress) {
