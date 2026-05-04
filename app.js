@@ -490,8 +490,8 @@ function initDashboard() {
                 ${pacingWarningHtml}
                 <div style="flex:1;">
                     <div class="glass-panel" style="padding: 2.5rem 2rem; transition: background 0.2s;" ondragenter="this.style.background='rgba(46, 83, 57, 0.1)'" ondragleave="this.style.background=''" ondragover="event.preventDefault(); this.style.background='rgba(46, 83, 57, 0.1)'" ondrop="this.style.background=''; window.dropTask(event, engine.getTodayStr())">
-                        <h2 style="margin-bottom: 2rem; color: var(--color-forest); font-size: 1.6rem; letter-spacing:-0.4px; font-family:'Apple SD Gothic Neo', serif;">Today's Schedule</h2>
-                        <div style="display: flex; flex-direction: column; border-top: 1px solid var(--glass-border);">
+                        <h2 style="margin-bottom: 2rem; color: var(--color-forest); font-size: 1.6rem; letter-spacing:-0.4px; font-family:'Apple SD Gothic Neo', serif; pointer-events: none;">Today's Schedule</h2>
+                        <div style="display: flex; flex-direction: column; border-top: 1px solid var(--glass-border); min-height: 100px;" ondragover="event.preventDefault();" ondrop="window.dropTask(event, engine.getTodayStr()); event.stopPropagation();">
                             ${cardsHtml}
                         </div>
                     </div>
@@ -646,11 +646,11 @@ function initDashboard() {
 
             html += `
                 <div class="calendar-day" ondragover="event.preventDefault();" ondragenter="event.preventDefault();" ondrop="window.dropTask(event, '${dateStr}')">
-                    <div class="calendar-date" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="calendar-date" style="display: flex; justify-content: space-between; align-items: center;" ondragover="event.preventDefault();" ondrop="window.dropTask(event, '${dateStr}'); event.stopPropagation();">
                         <span>${displayDate}</span>
                         ${skipToggleHtml}
                     </div>
-                    <div class="calendar-badges">${isSkipped ? `<div class="calendar-empty" style="color: #ef4444; opacity: 0.8; font-weight: 700;">🏖️ 휴식 (공부 쉼)</div>` : badgesHtml}</div>
+                    <div class="calendar-badges" style="min-height: 40px;" ondragover="event.preventDefault();" ondrop="window.dropTask(event, '${dateStr}'); event.stopPropagation();">${isSkipped ? `<div class="calendar-empty" style="color: #ef4444; opacity: 0.8; font-weight: 700;">🏖️ 휴식 (공부 쉼)</div>` : badgesHtml}</div>
                 </div>
             `;
             currentDate.setDate(currentDate.getDate() + 1);
