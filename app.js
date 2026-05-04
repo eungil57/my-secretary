@@ -1798,10 +1798,15 @@ window.cancelComplete = (id) => {
 };
 
 window.dragTaskStart = (event, id, sourceDate, isReview = false, reviewDay = null) => {
-    event.dataTransfer.effectAllowed = 'move';
-    let payload = { id: id, sourceDate: sourceDate, isReview: isReview, reviewDay: reviewDay };
-    event.dataTransfer.setData('application/json', JSON.stringify(payload));
-    event.dataTransfer.setData('text/plain', id);
+    try {
+        event.dataTransfer.effectAllowed = 'move';
+        let payload = { id: id, sourceDate: sourceDate, isReview: isReview, reviewDay: reviewDay };
+        event.dataTransfer.setData('application/json', JSON.stringify(payload));
+        event.dataTransfer.setData('text/plain', id);
+        // Uncomment to debug if drag is starting: alert("드래그 시작: " + id);
+    } catch(err) {
+        alert("드래그 시작 오류: " + err.message);
+    }
 };
 
 window.dragHistoryStart = (event, id) => {
@@ -1839,9 +1844,13 @@ window.dropTask = (event, dateStr) => {
         }
         if (!id) id = event.dataTransfer.getData('text/plain');
         if (!id) {
+            alert("드래그 실패: ID를 찾을 수 없습니다.");
             console.warn("No ID found in drag payload");
             return;
         }
+        
+        // Debug alert to confirm dropTask is running correctly
+        alert("드롭 감지 성공! 과목 이동: " + (sourceDate || '알수없음') + " -> " + dateStr);
         
         if (isReview && reviewDay !== null) {
             if (!engine.state.settings.reviewDateOverrides) engine.state.settings.reviewDateOverrides = {};
