@@ -1849,8 +1849,7 @@ window.dropTask = (event, dateStr) => {
             return;
         }
         
-        // Debug alert to confirm dropTask is running correctly
-        alert("드롭 감지 성공! 과목 이동: " + (sourceDate || '알수없음') + " -> " + dateStr);
+        // alert("드롭 감지 성공! 과목 이동: " + (sourceDate || '알수없음') + " -> " + dateStr);
         
         if (isReview && reviewDay !== null) {
             if (!engine.state.settings.reviewDateOverrides) engine.state.settings.reviewDateOverrides = {};
