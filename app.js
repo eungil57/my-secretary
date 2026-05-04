@@ -1809,93 +1809,99 @@ window.dragHistoryStart = (event, id) => {
 };
 
 window.dropTask = (event, dateStr) => {
-    event.preventDefault();
-    let historyId = event.dataTransfer.getData('text/history');
-    
-    if (historyId) {
-        if (engine.state.progress[historyId]) {
-            engine.state.progress[historyId].completedAt = dateStr;
-            if (engine.state.settings.taskDateOverrides && engine.state.settings.taskDateOverrides[historyId]) {
-                delete engine.state.settings.taskDateOverrides[historyId];
+    try {
+        event.preventDefault();
+        let historyId = event.dataTransfer.getData('text/history');
+        
+        if (historyId) {
+            if (engine.state.progress[historyId]) {
+                engine.state.progress[historyId].completedAt = dateStr;
+                if (engine.state.settings.taskDateOverrides && engine.state.settings.taskDateOverrides[historyId]) {
+                    delete engine.state.settings.taskDateOverrides[historyId];
+                }
+                engine.saveState();
+                engine.generateSchedule();
+                initDashboard();
             }
-            engine.saveState();
-            engine.generateSchedule();
-            initDashboard();
+            return;
         }
-        return;
-    }
 
-    let payloadStr = event.dataTransfer.getData('application/json');
-    let id, sourceDate, isReview, reviewDay;
-    if (payloadStr) {
-        try {
-            let payload = JSON.parse(payloadStr);
-            id = payload.id;
-            sourceDate = payload.sourceDate;
-            isReview = payload.isReview;
-            reviewDay = payload.reviewDay;
-        } catch(e) {}
-    }
-    if (!id) id = event.dataTransfer.getData('text/plain');
-    if (!id) return;
-    
-    if (isReview && reviewDay !== null) {
-        if (!engine.state.settings.reviewDateOverrides) engine.state.settings.reviewDateOverrides = {};
-        if (!engine.state.settings.reviewDateOverrides[id]) engine.state.settings.reviewDateOverrides[id] = {};
-        engine.state.settings.reviewDateOverrides[id][reviewDay] = dateStr;
-    } else {
-        if (!engine.state.settings.taskDateOverrides) engine.state.settings.taskDateOverrides = {};
+        let payloadStr = event.dataTransfer.getData('application/json');
+        let id, sourceDate, isReview, reviewDay;
+        if (payloadStr) {
+            try {
+                let payload = JSON.parse(payloadStr);
+                id = payload.id;
+                sourceDate = payload.sourceDate;
+                isReview = payload.isReview;
+                reviewDay = payload.reviewDay;
+            } catch(e) {}
+        }
+        if (!id) id = event.dataTransfer.getData('text/plain');
+        if (!id) {
+            console.warn("No ID found in drag payload");
+            return;
+        }
         
-        let currentOv = engine.state.settings.taskDateOverrides[id];
-        let arr = [];
-        if (Array.isArray(currentOv)) arr = [...currentOv];
-        else if (currentOv) arr = [currentOv];
-        
-        if (sourceDate) {
-            if (arr.includes(sourceDate)) {
-                arr = arr.filter(d => d !== sourceDate);
-            }
+        if (isReview && reviewDay !== null) {
+            if (!engine.state.settings.reviewDateOverrides) engine.state.settings.reviewDateOverrides = {};
+            if (!engine.state.settings.reviewDateOverrides[id]) engine.state.settings.reviewDateOverrides[id] = {};
+            engine.state.settings.reviewDateOverrides[id][reviewDay] = dateStr;
         } else {
-            arr = [];
+            if (!engine.state.settings.taskDateOverrides) engine.state.settings.taskDateOverrides = {};
+            
+            let currentOv = engine.state.settings.taskDateOverrides[id];
+            let arr = [];
+            if (Array.isArray(currentOv)) arr = [...currentOv];
+            else if (currentOv) arr = [currentOv];
+            
+            if (sourceDate) {
+                if (arr.includes(sourceDate)) {
+                    arr = arr.filter(d => d !== sourceDate);
+                }
+            } else {
+                arr = [];
+            }
+            
+            if (!arr.includes(dateStr)) {
+                arr.push(dateStr);
+            }
+            arr.sort();
+            
+            engine.state.settings.taskDateOverrides[id] = arr;
         }
         
-        if (!arr.includes(dateStr)) {
-            arr.push(dateStr);
-        }
-        arr.sort();
+        if (!engine.state.settings.extraStudyDays) engine.state.settings.extraStudyDays = [];
+        if (!engine.state.settings.extraStudyDays.includes(dateStr)) engine.state.settings.extraStudyDays.push(dateStr);
         
-        engine.state.settings.taskDateOverrides[id] = arr;
-    }
-    
-    if (!engine.state.settings.extraStudyDays) engine.state.settings.extraStudyDays = [];
-    if (!engine.state.settings.extraStudyDays.includes(dateStr)) engine.state.settings.extraStudyDays.push(dateStr);
-    
-    let todayStr = engine.getTodayStr();
-    
-    // Manually manipulate historical schedule for past dates
-    // because generateSchedule only regenerates from today onwards.
-    if (sourceDate && sourceDate < todayStr) {
-        if (engine.state.schedule[sourceDate]) {
-            engine.state.schedule[sourceDate] = engine.state.schedule[sourceDate].filter(t => String(t.chapter.id) !== String(id));
+        let todayStr = engine.getTodayStr();
+        
+        if (sourceDate && sourceDate < todayStr) {
+            if (engine.state.schedule[sourceDate]) {
+                engine.state.schedule[sourceDate] = engine.state.schedule[sourceDate].filter(t => String(t.chapter.id) !== String(id));
+            }
         }
-    }
-    
-    if (dateStr < todayStr) {
-        if (!engine.state.schedule[dateStr]) engine.state.schedule[dateStr] = [];
-        let subjInfo = window.findSubjectOfChapter(id);
-        if (subjInfo && !engine.state.schedule[dateStr].some(t => String(t.chapter.id) === String(id))) {
-            engine.state.schedule[dateStr].push({
-                subjectId: subjInfo.subjKey,
-                chapter: subjInfo.chapter,
-                allocated: 1.5,
-                isReview: false
-            });
+        
+        if (dateStr < todayStr) {
+            if (!engine.state.schedule[dateStr]) engine.state.schedule[dateStr] = [];
+            let subjInfo = window.findSubjectOfChapter(id);
+            if (subjInfo && !engine.state.schedule[dateStr].some(t => String(t.chapter.id) === String(id))) {
+                engine.state.schedule[dateStr].push({
+                    subjectId: subjInfo.subjKey,
+                    chapter: subjInfo.chapter,
+                    allocated: 1.5,
+                    isReview: false
+                });
+            }
         }
+        
+        engine.saveState();
+        engine.generateSchedule();
+        initDashboard();
+    } catch(err) {
+        alert("드래그 앤 드롭 오류: " + err.message);
+        console.error(err);
     }
-    
-    engine.saveState();
-    engine.generateSchedule();
-    initDashboard();
 };
 
 window.editCustomTaskTitle = (taskId) => {
