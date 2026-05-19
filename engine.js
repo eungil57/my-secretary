@@ -196,38 +196,13 @@ window.StudyEngine = class {
                         needsSave = true;
                     }
                     
-                    if (!this.isCompleted(chId)) {
-                        // USER REQUEST: Missed overrides should be pushed to today instead of disappearing into natural flow.
-                        let newOv = [];
-                        let changed = false;
-                        ov.forEach(d => {
-                            if (d < todayStrForCount) {
-                                // Push missed override to today
-                                newOv.push(todayStrForCount);
-                                changed = true;
-                            } else {
-                                newOv.push(d);
-                            }
-                        });
-                        if (changed) {
-                            if (newOv.length > 0) {
-                                this.state.settings.taskDateOverrides[chId] = [...new Set(newOv)];
-                            } else {
-                                delete this.state.settings.taskDateOverrides[chId];
-                            }
-                            needsSave = true;
-                        }
-                    } else {
+                    if (this.isCompleted(chId)) {
                         delete this.state.settings.taskDateOverrides[chId];
                         needsSave = true;
                     }
                 } else {
                     if (this.isCompleted(chId)) {
                         delete this.state.settings.taskDateOverrides[chId];
-                        needsSave = true;
-                    } else if (this.state.settings.taskDateOverrides[chId] < todayStrForCount) {
-                        // USER REQUEST: Missed override should be pushed to today
-                        this.state.settings.taskDateOverrides[chId] = todayStrForCount;
                         needsSave = true;
                     }
                 }
@@ -237,10 +212,8 @@ window.StudyEngine = class {
         if (this.state.settings.reviewDateOverrides) {
             for (let chId in this.state.settings.reviewDateOverrides) {
                 for (let offset in this.state.settings.reviewDateOverrides[chId]) {
-                    if (this.state.settings.reviewDateOverrides[chId][offset] < todayStrForCount) {
-                        delete this.state.settings.reviewDateOverrides[chId][offset];
-                        needsSave = true;
-                    }
+                    // Do not push past review overrides to today automatically.
+                    // We will handle overdue reviews dynamically in the scheduling loop.
                 }
             }
         }
@@ -730,10 +703,10 @@ window.StudyEngine = class {
                                         let isOverridden = false;
                                         if (this.state.settings.reviewDateOverrides && this.state.settings.reviewDateOverrides[ch.id] && this.state.settings.reviewDateOverrides[ch.id][targetTier]) {
                                             let targetDate = this.state.settings.reviewDateOverrides[ch.id][targetTier];
-                                            if (targetDate !== dateStr) {
-                                                continue; // Skip it today, it belongs to another date!
+                                            if (targetDate > dateStr) {
+                                                continue; // Skip it today, it belongs to a future date!
                                             } else {
-                                                isOverridden = true; // It belongs to today!
+                                                isOverridden = true; // It belongs to today or is overdue (past)
                                             }
                                         }
 

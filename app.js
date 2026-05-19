@@ -1857,30 +1857,16 @@ window.dropTask = (event, dateStr) => {
             engine.state.settings.reviewDateOverrides[id][reviewDay] = dateStr;
         } else {
             if (!engine.state.settings.taskDateOverrides) engine.state.settings.taskDateOverrides = {};
-            
-            let currentOv = engine.state.settings.taskDateOverrides[id];
-            let arr = [];
-            if (Array.isArray(currentOv)) arr = [...currentOv];
-            else if (currentOv) arr = [currentOv];
-            
-            if (sourceDate) {
-                if (arr.includes(sourceDate)) {
-                    arr = arr.filter(d => d !== sourceDate);
-                }
-            } else {
-                arr = [];
-            }
-            
-            if (!arr.includes(dateStr)) {
-                arr.push(dateStr);
-            }
-            arr.sort();
-            
-            engine.state.settings.taskDateOverrides[id] = arr;
+            engine.state.settings.taskDateOverrides[id] = [dateStr];
         }
         
         if (!engine.state.settings.extraStudyDays) engine.state.settings.extraStudyDays = [];
         if (!engine.state.settings.extraStudyDays.includes(dateStr)) engine.state.settings.extraStudyDays.push(dateStr);
+
+        // Also remove the date from skippedDays if they force it there!
+        if (engine.state.skippedDays && engine.state.skippedDays.includes(dateStr)) {
+            engine.state.skippedDays = engine.state.skippedDays.filter(d => d !== dateStr);
+        }
         
         let todayStr = engine.getTodayStr();
         
