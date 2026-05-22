@@ -199,16 +199,6 @@ function initDashboard() {
         }
 
         for (let t of allTodayTasks) {
-            // If the task has a manual override in the past, DO NOT show it as an active task today.
-            let ov = overrides[t.chapter.id];
-            let isPast = false;
-            if (ov) {
-                if (Array.isArray(ov)) isPast = ov.every(d => d < todayStrLocal);
-                else isPast = ov < todayStrLocal;
-            }
-            if (isPast) {
-                continue;
-            }
             if (t.isReview && t.reviewDay !== '지정') {
                 let p = engine.state.progress[t.chapter.id];
                 if (p && p.status === 'completed' && p.completedAt) {
@@ -237,6 +227,10 @@ function initDashboard() {
             if (earliest) {
                 let subjInfo = findSubjectOfChapter(id);
                 if (!subjInfo) continue;
+                
+                // 엔진이 오늘 스케줄로 이월시킨 경우 어제 못한 복습에서 제외
+                if (activeTasks.find(a => a.chapter && String(a.chapter.id) === String(id))) continue;
+                
                 if (!missedTasks.find(m => m.chapter && String(m.chapter.id) === String(id))) {
                     if (engine.isCompleted(id)) {
                         let p = engine.state.progress[id];

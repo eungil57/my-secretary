@@ -218,21 +218,53 @@ window.StudyEngine = class {
             }
         }
         
+        let yesterdayForInit = new Date(todayStrForCount);
+        yesterdayForInit.setDate(yesterdayForInit.getDate() - 1);
+        let yInitStr = `${yesterdayForInit.getFullYear()}-${String(yesterdayForInit.getMonth()+1).padStart(2,'0')}-${String(yesterdayForInit.getDate()).padStart(2,'0')}`;
+        
+        let missedYesterdayChapters = [];
+        if (this.state.schedule && this.state.schedule[yInitStr]) {
+            let scheduledYesterday = this.state.schedule[yInitStr].filter(t => !t.isReview);
+            for (let t of scheduledYesterday) {
+                let isComp = false;
+                let chIdStr = String(t.chapter.id);
+                if (this.state.progress && this.state.progress[chIdStr]) {
+                    let p = this.state.progress[chIdStr];
+                    if ((p.status === 'completed' || p.status === 'partial') && p.completedAt === yInitStr) {
+                        isComp = true;
+                    }
+                }
+                if (this.state.historyMarkers && this.state.historyMarkers[yInitStr] && (this.state.historyMarkers[yInitStr][chIdStr] === 'O' || this.state.historyMarkers[yInitStr][chIdStr] === '△')) {
+                    isComp = true;
+                }
+                if (!isComp) {
+                    missedYesterdayChapters.push(chIdStr);
+                }
+            }
+        }
+
         for (let sub in pending) {
             let regular = [];
+            let encounteredNormal = false;
             for (let ch of pending[sub]) {
                 let overrideDate = (this.state.settings.taskDateOverrides || {})[ch.id];
+                let isMissedYesterday = missedYesterdayChapters.includes(String(ch.id));
+                
                 if (overrideDate) {
                     if (Array.isArray(overrideDate)) {
                         for (let d of overrideDate) {
                             if (!deferredTasks[d]) deferredTasks[d] = [];
-                            deferredTasks[d].push({ sub, chapter: ch });
+                            deferredTasks[d].push({ sub, chapter: ch, isExplicitOverride: true });
                         }
                     } else {
                         if (!deferredTasks[overrideDate]) deferredTasks[overrideDate] = [];
-                        deferredTasks[overrideDate].push({ sub, chapter: ch });
+                        deferredTasks[overrideDate].push({ sub, chapter: ch, isExplicitOverride: true });
                     }
+                } else if (isMissedYesterday && !encounteredNormal) {
+                    if (!deferredTasks[todayStrForCount]) deferredTasks[todayStrForCount] = [];
+                    deferredTasks[todayStrForCount].push({ sub, chapter: ch, isExplicitOverride: true });
                 } else {
+                    encounteredNormal = true;
                     regular.push(ch);
                 }
             }
@@ -297,59 +329,8 @@ window.StudyEngine = class {
         if (activeQueue[0] === s1a) activeQueue.push(s1b); else if (activeQueue[0] === s1b) activeQueue.push(s1a);
         if (activeQueue[1] === s2a) activeQueue.push(s2b); else if (activeQueue[1] === s2b) activeQueue.push(s2a);
 
-        // STRUCTURAL FIX: Carry over missed subjects from yesterday
-        // Look at yesterday's saved schedule. If a subject was scheduled but not actually studied yesterday,
-        // it means the user missed it. Put it at the front of the queue today so it carries over and pushes other subjects back.
-        let yesterdayForInit = new Date(todayStrForCount);
-        yesterdayForInit.setDate(yesterdayForInit.getDate() - 1);
-        let yInitStr = `${yesterdayForInit.getFullYear()}-${String(yesterdayForInit.getMonth()+1).padStart(2,'0')}-${String(yesterdayForInit.getDate()).padStart(2,'0')}`;
-        
-        let missedYesterdaySubjs = [];
-        if (this.state.schedule && this.state.schedule[yInitStr]) {
-            let scheduledYesterday = this.state.schedule[yInitStr].filter(t => !t.isReview).map(t => t.subjectId);
-            scheduledYesterday = [...new Set(scheduledYesterday)];
-            
-            for (let subj of scheduledYesterday) {
-                // Was it completed yesterday?
-                let compY = false;
-                for (let k in this.state.progress) {
-                    let p = this.state.progress[k];
-                    if ((p.status === 'completed' || p.status === 'partial') && p.completedAt === yInitStr) {
-                        let subjK = null;
-                        for (let sKey in window.subjectData) {
-                            if (window.subjectData[sKey].chapters.find(c => String(c.id) === String(k))) subjK = sKey;
-                        }
-                        if (!subjK && String(k).endsWith('_obj')) subjK = 'tax';
-                        if (subjK === subj) compY = true;
-                    }
-                }
-                if (this.state.historyMarkers && this.state.historyMarkers[yInitStr]) {
-                    for (let chId in this.state.historyMarkers[yInitStr]) {
-                        if (this.state.historyMarkers[yInitStr][chId] === 'O' || this.state.historyMarkers[yInitStr][chId] === '△') {
-                            let subjK = null;
-                            for (let sKey in window.subjectData) {
-                                if (window.subjectData[sKey].chapters.find(c => String(c.id) === String(chId))) subjK = sKey;
-                            }
-                            if (!subjK && String(chId).endsWith('_obj')) subjK = 'tax';
-                            if (subjK === subj) compY = true;
-                        }
-                    }
-                }
-                
-                if (!compY) {
-                    missedYesterdaySubjs.push(subj);
-                }
-            }
-        }
-        
-        // Put missed subjects at the front of the activeQueue so they are picked FIRST today!
-        if (missedYesterdaySubjs.length > 0) {
-            missedYesterdaySubjs.reverse().forEach(s => {
-                let idx = activeQueue.indexOf(s);
-                if (idx > -1) activeQueue.splice(idx, 1);
-                activeQueue.unshift(s);
-            });
-        }
+        // The missed subjects logic above is now handled more robustly by the implicit override logic.
+        // We still keep missedYesterdaySubjs so they have priority in the activeQueue if any non-overridden tasks exist.
 
         // TEMPORARY BRIDGE: Override any corrupted past state for today specifically.
         if (todayStrForCount === '2026-04-24') {
@@ -358,7 +339,15 @@ window.StudyEngine = class {
 
 
 
-        while(pending.tax.length > 0 || pending.accounting.length > 0 || pending.cost_accounting.length > 0 || pending.finance.length > 0) {
+        let hasPendingTasks = () => {
+            if (pending.tax.length > 0 || pending.accounting.length > 0 || pending.cost_accounting.length > 0 || pending.finance.length > 0) return true;
+            for (let k in deferredTasks) {
+                if (deferredTasks[k] && deferredTasks[k].length > 0) return true;
+            }
+            return false;
+        };
+
+        while(hasPendingTasks()) {
             const year = currentDate.getFullYear();
             const month = String(currentDate.getMonth() + 1).padStart(2, '0');
             const day = String(currentDate.getDate()).padStart(2, '0');
@@ -412,7 +401,7 @@ window.StudyEngine = class {
                 for (let dt of deferredTasks[dateStr]) {
                     if (!dt.chapter || !dt.chapter.id) continue;
                     
-                    let isExplicitOverride = false;
+                    let isExplicitOverride = dt.isExplicitOverride || false;
                     let ov = (this.state.settings.taskDateOverrides || {})[dt.chapter.id];
                     if (ov) {
                         if (Array.isArray(ov) && ov.includes(dateStr)) isExplicitOverride = true;
@@ -509,6 +498,8 @@ window.StudyEngine = class {
                 if (!deferredTasks[ndStr]) deferredTasks[ndStr] = [];
                 deferredTasks[ndStr].push(...deferredSpillover);
             }
+            
+            delete deferredTasks[dateStr];
             
             // Move subjects already studied today (via overrides) to back of queue
             subjectsWithDeferredToday.forEach(s => {
@@ -676,13 +667,6 @@ window.StudyEngine = class {
                                 let diffTime = currentDayTs - compTime;
                                 let diffDays = Math.round(diffTime / (1000 * 3600 * 24));
                                 
-                                // User explicitly requested that reviews MUST only appear when the subject is actively being studied that day.
-                                // If the subject is not active today, we wait (defer the review).
-                                let isStudyingToday = todaysSubjects.includes(subjKey) || subjectsWithDeferredToday.includes(subjKey);
-                                if (!isStudyingToday) {
-                                    continue;
-                                }
-
                                 // Find the FIRST uncompleted review tier that is due
                                 let targetTier = null;
                                 for (let d of reviewDays) {
@@ -708,6 +692,13 @@ window.StudyEngine = class {
                                             } else {
                                                 isOverridden = true; // It belongs to today or is overdue (past)
                                             }
+                                        }
+
+                                        // User explicitly requested that reviews MUST only appear when the subject is actively being studied that day.
+                                        // If the subject is not active today, we wait (defer the review).
+                                        let isStudyingToday = todaysSubjects.includes(subjKey) || subjectsWithDeferredToday.includes(subjKey);
+                                        if (!isStudyingToday && !isOverridden) {
+                                            continue;
                                         }
 
                                         // This is the FIRST time we are evaluating a valid subject day for this required tier!
