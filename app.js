@@ -1850,6 +1850,9 @@ window.dropTask = (event, dateStr) => {
             if (!engine.state.settings.reviewDateOverrides[id]) engine.state.settings.reviewDateOverrides[id] = {};
             engine.state.settings.reviewDateOverrides[id][reviewDay] = dateStr;
         } else {
+            if (dateStr >= todayStr && engine.isCompleted(id)) {
+                engine.removeCompletion(id);
+            }
             if (!engine.state.settings.taskDateOverrides) engine.state.settings.taskDateOverrides = {};
             engine.state.settings.taskDateOverrides[id] = [dateStr];
         }
